@@ -229,8 +229,10 @@ add_gandiva_test(internals-test
                  expr_decomposer_test.cc
                  expression_registry_test.cc
                  selection_vector_test.cc
+                 to_date_functions_holder.cc
                  greedy_dual_size_cache_test.cc
                  to_date_holder_test.cc
+                 to_time_holder.cc
                  simple_arena_test.cc
                  like_holder_test.cc
                  decimal_type_util_test.cc

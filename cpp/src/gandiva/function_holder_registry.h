@@ -23,12 +23,12 @@
 #include <unordered_map>
 
 #include "arrow/status.h"
-
 #include "gandiva/function_holder.h"
 #include "gandiva/like_holder.h"
 #include "gandiva/node.h"
 #include "gandiva/random_generator_holder.h"
 #include "gandiva/to_date_holder.h"
+#include "gandiva/to_time_holder.h"
 
 namespace gandiva {
 
@@ -64,6 +64,7 @@ class FunctionHolderRegistry {
         {"like", LAMBDA_MAKER(LikeHolder)},
         {"ilike", LAMBDA_MAKER(LikeHolder)},
         {"to_date", LAMBDA_MAKER(ToDateHolder)},
+        {"to_time", LAMBDA_MAKER(ToTimeHolder)},
         {"random", LAMBDA_MAKER(RandomGeneratorHolder)},
         {"rand", LAMBDA_MAKER(RandomGeneratorHolder)},
     };
