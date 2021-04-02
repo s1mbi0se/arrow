@@ -27,8 +27,7 @@
 #include "gandiva/like_holder.h"
 #include "gandiva/node.h"
 #include "gandiva/random_generator_holder.h"
-#include "gandiva/to_date_holder.h"
-#include "gandiva/to_time_holder.h"
+#include "gandiva/to_date_functions_holder.h"
 
 namespace gandiva {
 
