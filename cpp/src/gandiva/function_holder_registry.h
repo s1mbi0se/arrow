@@ -64,6 +64,7 @@ class FunctionHolderRegistry {
         {"ilike", LAMBDA_MAKER(LikeHolder)},
         {"to_date", LAMBDA_MAKER(ToDateHolder)},
         {"to_time", LAMBDA_MAKER(ToTimeHolder)},
+        {"to_timestamp", LAMBDA_MAKER(ToTimestampHolder)},
         {"random", LAMBDA_MAKER(RandomGeneratorHolder)},
         {"rand", LAMBDA_MAKER(RandomGeneratorHolder)},
     };
