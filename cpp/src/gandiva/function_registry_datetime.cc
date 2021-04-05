@@ -96,6 +96,9 @@ std::vector<NativeFunction> GetDateTimeFunctionRegistry() {
       NativeFunction("extractDay", {}, DataTypeVector{day_time_interval()}, int64(),
                      kResultNullIfNull, "extractDay_daytimeinterval"),
 
+      NativeFunction("convertTimezone", {}, DataTypeVector{utf8(), utf8(), timestamp()}, timestamp(),
+                     kResultNullIfNull, "convertTimezone"),
+
       DATE_TYPES(LAST_DAY_SAFE_NULL_IF_NULL, last_day, {}),
       BASE_NUMERIC_TYPES(TO_TIME_SAFE_NULL_IF_NULL, to_time, {}),
       BASE_NUMERIC_TYPES(TO_TIMESTAMP_SAFE_NULL_IF_NULL, to_timestamp, {})};
