@@ -20,6 +20,7 @@
 #include <cstdint>
 
 #include "gandiva/visibility.h"
+#include "gandiva/to_value_parser.h"
 
 /// Stub functions that can be accessed from LLVM.
 extern "C" {
@@ -157,4 +158,16 @@ const char* gdv_fn_lower_utf8(int64_t context, const char* data, int32_t data_le
 GANDIVA_EXPORT
 const char* gdv_fn_initcap_utf8(int64_t context, const char* data, int32_t data_len,
                                 int32_t* out_len);
+
+GANDIVA_EXPORT
+int32_t gdv_fn_to_numberINT(int64_t context, const char* data, int32_t data_len, const char* format, int32_t format_len);
+
+GANDIVA_EXPORT
+int64_t gdv_fn_to_numberBIGINT(int64_t context, const char* data, int32_t data_len, const char* format, int32_t format_len);
+
+GANDIVA_EXPORT
+float gdv_fn_to_numberFLOAT4(int64_t context, const char* data, int32_t data_len, const char* format, int32_t format_len);
+
+GANDIVA_EXPORT
+double gdv_fn_to_numberFLOAT8(int64_t context, const char* data, int32_t data_len, const char* format, int32_t format_len);
 }
