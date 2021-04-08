@@ -27,22 +27,22 @@ extern "C" {
 #include "./types.h"
 
 FORCE_INLINE
-gdv_int32 octet_length_utf8(const gdv_utf8 input, gdv_int32 length) { return length; }
+int32_t octet_length_utf8(const gdv_utf8 input, int32_t length) { return length; }
 
 FORCE_INLINE
-gdv_int32 bit_length_utf8(const gdv_utf8 input, gdv_int32 length) { return length * 8; }
+int32_t bit_length_utf8(const gdv_utf8 input, int32_t length) { return length * 8; }
 
 FORCE_INLINE
-gdv_int32 octet_length_binary(const gdv_binary input, gdv_int32 length) { return length; }
+int32_t octet_length_binary(const gdv_binary input, int32_t length) { return length; }
 
 FORCE_INLINE
-gdv_int32 bit_length_binary(const gdv_binary input, gdv_int32 length) {
+int32_t bit_length_binary(const gdv_binary input, int32_t length) {
   return length * 8;
 }
 
 FORCE_INLINE
-int match_string(const char* input, gdv_int32 input_len, gdv_int32 start_pos,
-                 const char* delim, gdv_int32 delim_len) {
+int match_string(const char* input, int32_t input_len, int32_t start_pos,
+                 const char* delim, int32_t delim_len) {
   for (int i = start_pos; i < input_len; i++) {
     int left_chars = input_len - i;
     if ((left_chars >= delim_len) && memcmp(input + i, delim, delim_len) == 0) {
@@ -54,8 +54,8 @@ int match_string(const char* input, gdv_int32 input_len, gdv_int32 start_pos,
 }
 
 FORCE_INLINE
-gdv_int32 mem_compare(const char* left, gdv_int32 left_len, const char* right,
-                      gdv_int32 right_len) {
+int32_t mem_compare(const char* left, int32_t left_len, const char* right,
+                      int32_t right_len) {
   int min = left_len;
   if (right_len < min) {
     min = right_len;
@@ -77,8 +77,8 @@ gdv_int32 mem_compare(const char* left, gdv_int32 left_len, const char* right,
 // Relational binary fns : left, right params are same, return is bool.
 #define BINARY_RELATIONAL(NAME, TYPE, OP)                                    \
   FORCE_INLINE                                                               \
-  bool NAME##_##TYPE##_##TYPE(const gdv_##TYPE left, gdv_int32 left_len,     \
-                              const gdv_##TYPE right, gdv_int32 right_len) { \
+  bool NAME##_##TYPE##_##TYPE(const gdv_##TYPE left, int32_t left_len,     \
+                              const gdv_##TYPE right, int32_t right_len) { \
     return mem_compare(left, left_len, right, right_len) OP 0;               \
   }
 
@@ -108,14 +108,14 @@ int to_binary_from_hex(char ch) {
 }
 
 FORCE_INLINE
-bool starts_with_utf8_utf8(const char* data, gdv_int32 data_len, const char* prefix,
-                           gdv_int32 prefix_len) {
+bool starts_with_utf8_utf8(const char* data, int32_t data_len, const char* prefix,
+                           int32_t prefix_len) {
   return ((data_len >= prefix_len) && (memcmp(data, prefix, prefix_len) == 0));
 }
 
 FORCE_INLINE
-bool ends_with_utf8_utf8(const char* data, gdv_int32 data_len, const char* suffix,
-                         gdv_int32 suffix_len) {
+bool ends_with_utf8_utf8(const char* data, int32_t data_len, const char* suffix,
+                         int32_t suffix_len) {
   return ((data_len >= suffix_len) &&
           (memcmp(data + data_len - suffix_len, suffix, suffix_len) == 0));
 }
@@ -132,7 +132,7 @@ bool is_substr_utf8_utf8(const char* data, int32_t data_len, const char* substr,
 }
 
 FORCE_INLINE
-gdv_int32 utf8_char_length(char c) {
+int32_t utf8_char_length(char c) {
   if ((signed char)c >= 0) {  // 1-byte char (0x00 ~ 0x7F)
     return 1;
   } else if ((c & 0xE0) == 0xC0) {  // 2-byte char
@@ -159,7 +159,7 @@ void set_error_for_invalid_utf(int64_t execution_context, char val) {
 // Count the number of utf8 characters
 // return 0 for invalid/incomplete input byte sequences
 FORCE_INLINE
-gdv_int32 utf8_length(gdv_int64 context, const char* data, gdv_int32 data_len) {
+int32_t utf8_length(int64_t context, const char* data, int32_t data_len) {
   int char_len = 0;
   int count = 0;
   for (int i = 0; i < data_len; i += char_len) {
@@ -182,11 +182,11 @@ gdv_int32 utf8_length(gdv_int64 context, const char* data, gdv_int32 data_len) {
 // Get the byte position corresponding to a character position for a non-empty utf8
 // sequence
 FORCE_INLINE
-gdv_int32 utf8_byte_pos(gdv_int64 context, const char* str, gdv_int32 str_len,
-                        gdv_int32 char_pos) {
+int32_t utf8_byte_pos(int64_t context, const char* str, int32_t str_len,
+                        int32_t char_pos) {
   int char_len = 0;
   int byte_index = 0;
-  for (gdv_int32 char_index = 0; char_index < char_pos && byte_index < str_len;
+  for (int32_t char_index = 0; char_index < char_pos && byte_index < str_len;
        char_index++) {
     char_len = utf8_char_length(str[byte_index]);
     if (char_len == 0 ||
@@ -201,7 +201,7 @@ gdv_int32 utf8_byte_pos(gdv_int64 context, const char* str, gdv_int32 str_len,
 
 #define UTF8_LENGTH(NAME, TYPE)                                                 \
   FORCE_INLINE                                                                  \
-  gdv_int32 NAME##_##TYPE(gdv_int64 context, gdv_##TYPE in, gdv_int32 in_len) { \
+  int32_t NAME##_##TYPE(int64_t context, gdv_##TYPE in, int32_t in_len) { \
     return utf8_length(context, in, in_len);                                    \
   }
 
@@ -212,7 +212,7 @@ UTF8_LENGTH(lengthUtf8, binary)
 // Convert a utf8 sequence to upper case.
 // TODO : This handles only ascii characters.
 FORCE_INLINE
-const char* upper_utf8(gdv_int64 context, const char* data, gdv_int32 data_len,
+const char* upper_utf8(int64_t context, const char* data, int32_t data_len,
                        int32_t* out_len) {
   if (data_len == 0) {
     *out_len = 0;
@@ -225,7 +225,7 @@ const char* upper_utf8(gdv_int64 context, const char* data, gdv_int32 data_len,
     *out_len = 0;
     return "";
   }
-  for (gdv_int32 i = 0; i < data_len; ++i) {
+  for (int32_t i = 0; i < data_len; ++i) {
     char cur = data[i];
 
     // 'A- - 'Z' : 0x41 - 0x5a
@@ -242,7 +242,7 @@ const char* upper_utf8(gdv_int64 context, const char* data, gdv_int32 data_len,
 // Convert a utf8 sequence to lower case.
 // TODO : This handles only ascii characters.
 FORCE_INLINE
-const char* lower_utf8(gdv_int64 context, const char* data, gdv_int32 data_len,
+const char* lower_utf8(int64_t context, const char* data, int32_t data_len,
                        int32_t* out_len) {
   if (data_len == 0) {
     *out_len = 0;
@@ -255,7 +255,7 @@ const char* lower_utf8(gdv_int64 context, const char* data, gdv_int32 data_len,
     *out_len = 0;
     return "";
   }
-  for (gdv_int32 i = 0; i < data_len; ++i) {
+  for (int32_t i = 0; i < data_len; ++i) {
     char cur = data[i];
 
     // 'A' - 'Z' : 0x41 - 0x5a
@@ -271,7 +271,7 @@ const char* lower_utf8(gdv_int64 context, const char* data, gdv_int32 data_len,
 
 // Reverse a utf8 sequence
 FORCE_INLINE
-const char* reverse_utf8(gdv_int64 context, const char* data, gdv_int32 data_len,
+const char* reverse_utf8(int64_t context, const char* data, int32_t data_len,
                          int32_t* out_len) {
   if (data_len == 0) {
     *out_len = 0;
@@ -285,8 +285,8 @@ const char* reverse_utf8(gdv_int64 context, const char* data, gdv_int32 data_len
     return "";
   }
 
-  gdv_int32 char_len;
-  for (gdv_int32 i = 0; i < data_len; i += char_len) {
+  int32_t char_len;
+  for (int32_t i = 0; i < data_len; i += char_len) {
     char_len = utf8_char_length(data[i]);
 
     if (char_len == 0 || i + char_len > data_len) {  // invalid byte or incomplete glyph
@@ -295,7 +295,7 @@ const char* reverse_utf8(gdv_int64 context, const char* data, gdv_int32 data_len
       return "";
     }
 
-    for (gdv_int32 j = 0; j < char_len; ++j) {
+    for (int32_t j = 0; j < char_len; ++j) {
       if (j > 0 && (data[i + j] & 0xC0) != 0x80) {  // bytes following head-byte of glyph
         set_error_for_invalid_utf(context, data[i + j]);
         *out_len = 0;
@@ -310,14 +310,14 @@ const char* reverse_utf8(gdv_int64 context, const char* data, gdv_int32 data_len
 
 // Trims whitespaces from the left end of the input utf8 sequence
 FORCE_INLINE
-const char* ltrim_utf8(gdv_int64 context, const char* data, gdv_int32 data_len,
+const char* ltrim_utf8(int64_t context, const char* data, int32_t data_len,
                        int32_t* out_len) {
   if (data_len == 0) {
     *out_len = 0;
     return "";
   }
 
-  gdv_int32 start = 0;
+  int32_t start = 0;
   // start denotes the first position of non-space characters in the input string
   while (start < data_len && data[start] == ' ') {
     ++start;
@@ -329,14 +329,14 @@ const char* ltrim_utf8(gdv_int64 context, const char* data, gdv_int32 data_len,
 
 // Trims whitespaces from the right end of the input utf8 sequence
 FORCE_INLINE
-const char* rtrim_utf8(gdv_int64 context, const char* data, gdv_int32 data_len,
+const char* rtrim_utf8(int64_t context, const char* data, int32_t data_len,
                        int32_t* out_len) {
   if (data_len == 0) {
     *out_len = 0;
     return "";
   }
 
-  gdv_int32 end = data_len - 1;
+  int32_t end = data_len - 1;
   // end denotes the last position of non-space characters in the input string
   while (end >= 0 && data[end] == ' ') {
     --end;
@@ -348,14 +348,14 @@ const char* rtrim_utf8(gdv_int64 context, const char* data, gdv_int32 data_len,
 
 // Trims whitespaces from both the ends of the input utf8 sequence
 FORCE_INLINE
-const char* btrim_utf8(gdv_int64 context, const char* data, gdv_int32 data_len,
+const char* btrim_utf8(int64_t context, const char* data, int32_t data_len,
                        int32_t* out_len) {
   if (data_len == 0) {
     *out_len = 0;
     return "";
   }
 
-  gdv_int32 start = 0, end = data_len - 1;
+  int32_t start = 0, end = data_len - 1;
   // start and end denote the first and last positions of non-space
   // characters in the input string respectively
   while (start <= end && data[start] == ' ') {
@@ -372,9 +372,9 @@ const char* btrim_utf8(gdv_int64 context, const char* data, gdv_int32 data_len,
 
 // Trims characters present in the trim text from the left end of the base text
 FORCE_INLINE
-const char* ltrim_utf8_utf8(gdv_int64 context, const char* basetext,
-                            gdv_int32 basetext_len, const char* trimtext,
-                            gdv_int32 trimtext_len, int32_t* out_len) {
+const char* ltrim_utf8_utf8(int64_t context, const char* basetext,
+                            int32_t basetext_len, const char* trimtext,
+                            int32_t trimtext_len, int32_t* out_len) {
   if (basetext_len == 0) {
     *out_len = 0;
     return "";
@@ -383,7 +383,7 @@ const char* ltrim_utf8_utf8(gdv_int64 context, const char* basetext,
     return basetext;
   }
 
-  gdv_int32 start_ptr, char_len;
+  int32_t start_ptr, char_len;
   // scan the base text from left to right and increment the start pointer till
   // there is a character which is not present in the trim text
   for (start_ptr = 0; start_ptr < basetext_len; start_ptr += char_len) {
@@ -405,9 +405,9 @@ const char* ltrim_utf8_utf8(gdv_int64 context, const char* basetext,
 
 // Trims characters present in the trim text from the right end of the base text
 FORCE_INLINE
-const char* rtrim_utf8_utf8(gdv_int64 context, const char* basetext,
-                            gdv_int32 basetext_len, const char* trimtext,
-                            gdv_int32 trimtext_len, int32_t* out_len) {
+const char* rtrim_utf8_utf8(int64_t context, const char* basetext,
+                            int32_t basetext_len, const char* trimtext,
+                            int32_t trimtext_len, int32_t* out_len) {
   if (basetext_len == 0) {
     *out_len = 0;
     return "";
@@ -416,7 +416,7 @@ const char* rtrim_utf8_utf8(gdv_int64 context, const char* basetext,
     return basetext;
   }
 
-  gdv_int32 char_len, end_ptr, byte_cnt = 1;
+  int32_t char_len, end_ptr, byte_cnt = 1;
   // scan the base text from right to left and decrement the end pointer till
   // there is a character which is not present in the trim text
   for (end_ptr = basetext_len - 1; end_ptr >= 0; --end_ptr) {
@@ -450,9 +450,9 @@ const char* rtrim_utf8_utf8(gdv_int64 context, const char* basetext,
 
 // Trims characters present in the trim text from both ends of the base text
 FORCE_INLINE
-const char* btrim_utf8_utf8(gdv_int64 context, const char* basetext,
-                            gdv_int32 basetext_len, const char* trimtext,
-                            gdv_int32 trimtext_len, int32_t* out_len) {
+const char* btrim_utf8_utf8(int64_t context, const char* basetext,
+                            int32_t basetext_len, const char* trimtext,
+                            int32_t trimtext_len, int32_t* out_len) {
   if (basetext_len == 0) {
     *out_len = 0;
     return "";
@@ -461,7 +461,7 @@ const char* btrim_utf8_utf8(gdv_int64 context, const char* basetext,
     return basetext;
   }
 
-  gdv_int32 start_ptr, end_ptr, char_len, byte_cnt = 1;
+  int32_t start_ptr, end_ptr, char_len, byte_cnt = 1;
   // scan the base text from left to right and increment the start and decrement the
   // end pointers till there are characters which are not present in the trim text
   for (start_ptr = 0; start_ptr < basetext_len; start_ptr += char_len) {
@@ -507,9 +507,9 @@ const char* btrim_utf8_utf8(gdv_int64 context, const char* basetext,
 }
 
 FORCE_INLINE
-const char* castVARCHAR_bool_int64(gdv_int64 context, gdv_boolean value,
-                                   gdv_int64 out_len, gdv_int32* out_length) {
-  gdv_int32 len = static_cast<gdv_int32>(out_len);
+const char* castVARCHAR_bool_int64(int64_t context, gdv_boolean value,
+                                   int64_t out_len, int32_t* out_length) {
+  int32_t len = static_cast<int32_t>(out_len);
   if (len < 0) {
     gdv_fn_context_set_error_msg(context, "Output buffer length can't be negative");
     *out_length = 0;
@@ -524,8 +524,8 @@ const char* castVARCHAR_bool_int64(gdv_int64 context, gdv_boolean value,
 
 // Truncates the string to given length
 FORCE_INLINE
-const char* castVARCHAR_utf8_int64(gdv_int64 context, const char* data,
-                                   gdv_int32 data_len, int64_t out_len,
+const char* castVARCHAR_utf8_int64(int64_t context, const char* data,
+                                   int32_t data_len, int64_t out_len,
                                    int32_t* out_length) {
   int32_t len = static_cast<int32_t>(out_len);
 
@@ -608,7 +608,7 @@ const char* castVARCHAR_utf8_int64(gdv_int64 context, const char* data,
 
 #define IS_NULL(NAME, TYPE)                                                \
   FORCE_INLINE                                                             \
-  bool NAME##_##TYPE(gdv_##TYPE in, gdv_int32 len, gdv_boolean is_valid) { \
+  bool NAME##_##TYPE(gdv_##TYPE in, int32_t len, gdv_boolean is_valid) { \
     return !is_valid;                                                      \
   }
 
@@ -618,7 +618,7 @@ VAR_LEN_TYPES(IS_NULL, isnull)
 
 #define IS_NOT_NULL(NAME, TYPE)                                            \
   FORCE_INLINE                                                             \
-  bool NAME##_##TYPE(gdv_##TYPE in, gdv_int32 len, gdv_boolean is_valid) { \
+  bool NAME##_##TYPE(gdv_##TYPE in, int32_t len, gdv_boolean is_valid) { \
     return is_valid;                                                       \
   }
 
@@ -640,16 +640,16 @@ VAR_LEN_TYPES(IS_NOT_NULL, isnotnull)
  - If position is 0 then it is treated as 1.
  */
 FORCE_INLINE
-const char* substr_utf8_int64_int64(gdv_int64 context, const char* input,
-                                    gdv_int32 in_data_len, gdv_int64 position,
-                                    gdv_int64 substring_length, gdv_int32* out_data_len) {
+const char* substr_utf8_int64_int64(int64_t context, const char* input,
+                                    int32_t in_data_len, int64_t position,
+                                    int64_t substring_length, int32_t* out_data_len) {
   if (substring_length <= 0 || input == nullptr || in_data_len <= 0) {
     *out_data_len = 0;
     return "";
   }
 
-  gdv_int64 in_glyphs_count =
-      static_cast<gdv_int64>(utf8_length(context, input, in_data_len));
+  int64_t in_glyphs_count =
+      static_cast<int64_t>(utf8_length(context, input, in_data_len));
 
   // in_glyphs_count is zero if input has invalid glyphs
   if (in_glyphs_count == 0) {
@@ -657,7 +657,7 @@ const char* substr_utf8_int64_int64(gdv_int64 context, const char* input,
     return "";
   }
 
-  gdv_int64 from_glyph;  // from_glyph==0 indicates the first glyph of the input
+  int64_t from_glyph;  // from_glyph==0 indicates the first glyph of the input
   if (position > 0) {
     from_glyph = position - 1;
   } else if (position < 0) {
@@ -671,22 +671,22 @@ const char* substr_utf8_int64_int64(gdv_int64 context, const char* input,
     return "";
   }
 
-  gdv_int64 out_glyphs_count = substring_length;
+  int64_t out_glyphs_count = substring_length;
   if (substring_length > in_glyphs_count - from_glyph) {
     out_glyphs_count = in_glyphs_count - from_glyph;
   }
 
-  gdv_int64 in_data_len64 = static_cast<gdv_int64>(in_data_len);
-  gdv_int64 start_pos = 0;
-  gdv_int64 end_pos = in_data_len64;
+  int64_t in_data_len64 = static_cast<int64_t>(in_data_len);
+  int64_t start_pos = 0;
+  int64_t end_pos = in_data_len64;
 
-  gdv_int64 current_glyph = 0;
-  gdv_int64 pos = 0;
+  int64_t current_glyph = 0;
+  int64_t pos = 0;
   while (pos < in_data_len64) {
     if (current_glyph == from_glyph) {
       start_pos = pos;
     }
-    pos += static_cast<gdv_int64>(utf8_char_length(input[pos]));
+    pos += static_cast<int64_t>(utf8_char_length(input[pos]));
     if (current_glyph - from_glyph + 1 == out_glyphs_count) {
       end_pos = pos;
     }
@@ -697,7 +697,7 @@ const char* substr_utf8_int64_int64(gdv_int64 context, const char* input,
     end_pos = in_data_len64;
   }
 
-  *out_data_len = static_cast<gdv_int32>(end_pos - start_pos);
+  *out_data_len = static_cast<int32_t>(end_pos - start_pos);
   char* ret =
       reinterpret_cast<char*>(gdv_fn_context_arena_malloc(context, *out_data_len));
   if (ret == nullptr) {
@@ -710,15 +710,15 @@ const char* substr_utf8_int64_int64(gdv_int64 context, const char* input,
 }
 
 FORCE_INLINE
-const char* substr_utf8_int64(gdv_int64 context, const char* input, gdv_int32 in_len,
-                              gdv_int64 offset64, gdv_int32* out_len) {
+const char* substr_utf8_int64(int64_t context, const char* input, int32_t in_len,
+                              int64_t offset64, int32_t* out_len) {
   return substr_utf8_int64_int64(context, input, in_len, offset64, in_len, out_len);
 }
 
 FORCE_INLINE
-const char* concat_utf8_utf8(gdv_int64 context, const char* left, gdv_int32 left_len,
-                             bool left_validity, const char* right, gdv_int32 right_len,
-                             bool right_validity, gdv_int32* out_len) {
+const char* concat_utf8_utf8(int64_t context, const char* left, int32_t left_len,
+                             bool left_validity, const char* right, int32_t right_len,
+                             bool right_validity, int32_t* out_len) {
   if (!left_validity) {
     left_len = 0;
   }
@@ -729,9 +729,9 @@ const char* concat_utf8_utf8(gdv_int64 context, const char* left, gdv_int32 left
 }
 
 FORCE_INLINE
-const char* concatOperator_utf8_utf8(gdv_int64 context, const char* left,
-                                     gdv_int32 left_len, const char* right,
-                                     gdv_int32 right_len, gdv_int32* out_len) {
+const char* concatOperator_utf8_utf8(int64_t context, const char* left,
+                                     int32_t left_len, const char* right,
+                                     int32_t right_len, int32_t* out_len) {
   *out_len = left_len + right_len;
   if (*out_len <= 0) {
     *out_len = 0;
@@ -749,10 +749,10 @@ const char* concatOperator_utf8_utf8(gdv_int64 context, const char* left,
 }
 
 FORCE_INLINE
-const char* concat_utf8_utf8_utf8(gdv_int64 context, const char* in1, gdv_int32 in1_len,
-                                  bool in1_validity, const char* in2, gdv_int32 in2_len,
-                                  bool in2_validity, const char* in3, gdv_int32 in3_len,
-                                  bool in3_validity, gdv_int32* out_len) {
+const char* concat_utf8_utf8_utf8(int64_t context, const char* in1, int32_t in1_len,
+                                  bool in1_validity, const char* in2, int32_t in2_len,
+                                  bool in2_validity, const char* in3, int32_t in3_len,
+                                  bool in3_validity, int32_t* out_len) {
   if (!in1_validity) {
     in1_len = 0;
   }
@@ -767,10 +767,10 @@ const char* concat_utf8_utf8_utf8(gdv_int64 context, const char* in1, gdv_int32 
 }
 
 FORCE_INLINE
-const char* concatOperator_utf8_utf8_utf8(gdv_int64 context, const char* in1,
-                                          gdv_int32 in1_len, const char* in2,
-                                          gdv_int32 in2_len, const char* in3,
-                                          gdv_int32 in3_len, gdv_int32* out_len) {
+const char* concatOperator_utf8_utf8_utf8(int64_t context, const char* in1,
+                                          int32_t in1_len, const char* in2,
+                                          int32_t in2_len, const char* in3,
+                                          int32_t in3_len, int32_t* out_len) {
   *out_len = in1_len + in2_len + in3_len;
   if (*out_len <= 0) {
     *out_len = 0;
@@ -789,13 +789,13 @@ const char* concatOperator_utf8_utf8_utf8(gdv_int64 context, const char* in1,
 }
 
 FORCE_INLINE
-const char* concat_utf8_utf8_utf8_utf8(gdv_int64 context, const char* in1,
-                                       gdv_int32 in1_len, bool in1_validity,
-                                       const char* in2, gdv_int32 in2_len,
+const char* concat_utf8_utf8_utf8_utf8(int64_t context, const char* in1,
+                                       int32_t in1_len, bool in1_validity,
+                                       const char* in2, int32_t in2_len,
                                        bool in2_validity, const char* in3,
-                                       gdv_int32 in3_len, bool in3_validity,
-                                       const char* in4, gdv_int32 in4_len,
-                                       bool in4_validity, gdv_int32* out_len) {
+                                       int32_t in3_len, bool in3_validity,
+                                       const char* in4, int32_t in4_len,
+                                       bool in4_validity, int32_t* out_len) {
   if (!in1_validity) {
     in1_len = 0;
   }
@@ -813,11 +813,11 @@ const char* concat_utf8_utf8_utf8_utf8(gdv_int64 context, const char* in1,
 }
 
 FORCE_INLINE
-const char* concatOperator_utf8_utf8_utf8_utf8(gdv_int64 context, const char* in1,
-                                               gdv_int32 in1_len, const char* in2,
-                                               gdv_int32 in2_len, const char* in3,
-                                               gdv_int32 in3_len, const char* in4,
-                                               gdv_int32 in4_len, gdv_int32* out_len) {
+const char* concatOperator_utf8_utf8_utf8_utf8(int64_t context, const char* in1,
+                                               int32_t in1_len, const char* in2,
+                                               int32_t in2_len, const char* in3,
+                                               int32_t in3_len, const char* in4,
+                                               int32_t in4_len, int32_t* out_len) {
   *out_len = in1_len + in2_len + in3_len + in4_len;
   if (*out_len <= 0) {
     *out_len = 0;
@@ -838,11 +838,11 @@ const char* concatOperator_utf8_utf8_utf8_utf8(gdv_int64 context, const char* in
 
 FORCE_INLINE
 const char* concat_utf8_utf8_utf8_utf8_utf8(
-    gdv_int64 context, const char* in1, gdv_int32 in1_len, bool in1_validity,
-    const char* in2, gdv_int32 in2_len, bool in2_validity, const char* in3,
-    gdv_int32 in3_len, bool in3_validity, const char* in4, gdv_int32 in4_len,
-    bool in4_validity, const char* in5, gdv_int32 in5_len, bool in5_validity,
-    gdv_int32* out_len) {
+    int64_t context, const char* in1, int32_t in1_len, bool in1_validity,
+    const char* in2, int32_t in2_len, bool in2_validity, const char* in3,
+    int32_t in3_len, bool in3_validity, const char* in4, int32_t in4_len,
+    bool in4_validity, const char* in5, int32_t in5_len, bool in5_validity,
+    int32_t* out_len) {
   if (!in1_validity) {
     in1_len = 0;
   }
@@ -865,9 +865,9 @@ const char* concat_utf8_utf8_utf8_utf8_utf8(
 
 FORCE_INLINE
 const char* concatOperator_utf8_utf8_utf8_utf8_utf8(
-    gdv_int64 context, const char* in1, gdv_int32 in1_len, const char* in2,
-    gdv_int32 in2_len, const char* in3, gdv_int32 in3_len, const char* in4,
-    gdv_int32 in4_len, const char* in5, gdv_int32 in5_len, gdv_int32* out_len) {
+    int64_t context, const char* in1, int32_t in1_len, const char* in2,
+    int32_t in2_len, const char* in3, int32_t in3_len, const char* in4,
+    int32_t in4_len, const char* in5, int32_t in5_len, int32_t* out_len) {
   *out_len = in1_len + in2_len + in3_len + in4_len + in5_len;
   if (*out_len <= 0) {
     *out_len = 0;
@@ -889,11 +889,11 @@ const char* concatOperator_utf8_utf8_utf8_utf8_utf8(
 
 FORCE_INLINE
 const char* concat_utf8_utf8_utf8_utf8_utf8_utf8(
-    gdv_int64 context, const char* in1, gdv_int32 in1_len, bool in1_validity,
-    const char* in2, gdv_int32 in2_len, bool in2_validity, const char* in3,
-    gdv_int32 in3_len, bool in3_validity, const char* in4, gdv_int32 in4_len,
-    bool in4_validity, const char* in5, gdv_int32 in5_len, bool in5_validity,
-    const char* in6, gdv_int32 in6_len, bool in6_validity, gdv_int32* out_len) {
+    int64_t context, const char* in1, int32_t in1_len, bool in1_validity,
+    const char* in2, int32_t in2_len, bool in2_validity, const char* in3,
+    int32_t in3_len, bool in3_validity, const char* in4, int32_t in4_len,
+    bool in4_validity, const char* in5, int32_t in5_len, bool in5_validity,
+    const char* in6, int32_t in6_len, bool in6_validity, int32_t* out_len) {
   if (!in1_validity) {
     in1_len = 0;
   }
@@ -919,10 +919,10 @@ const char* concat_utf8_utf8_utf8_utf8_utf8_utf8(
 
 FORCE_INLINE
 const char* concatOperator_utf8_utf8_utf8_utf8_utf8_utf8(
-    gdv_int64 context, const char* in1, gdv_int32 in1_len, const char* in2,
-    gdv_int32 in2_len, const char* in3, gdv_int32 in3_len, const char* in4,
-    gdv_int32 in4_len, const char* in5, gdv_int32 in5_len, const char* in6,
-    gdv_int32 in6_len, gdv_int32* out_len) {
+    int64_t context, const char* in1, int32_t in1_len, const char* in2,
+    int32_t in2_len, const char* in3, int32_t in3_len, const char* in4,
+    int32_t in4_len, const char* in5, int32_t in5_len, const char* in6,
+    int32_t in6_len, int32_t* out_len) {
   *out_len = in1_len + in2_len + in3_len + in4_len + in5_len + in6_len;
   if (*out_len <= 0) {
     *out_len = 0;
@@ -945,12 +945,12 @@ const char* concatOperator_utf8_utf8_utf8_utf8_utf8_utf8(
 
 FORCE_INLINE
 const char* concat_utf8_utf8_utf8_utf8_utf8_utf8_utf8(
-    gdv_int64 context, const char* in1, gdv_int32 in1_len, bool in1_validity,
-    const char* in2, gdv_int32 in2_len, bool in2_validity, const char* in3,
-    gdv_int32 in3_len, bool in3_validity, const char* in4, gdv_int32 in4_len,
-    bool in4_validity, const char* in5, gdv_int32 in5_len, bool in5_validity,
-    const char* in6, gdv_int32 in6_len, bool in6_validity, const char* in7,
-    gdv_int32 in7_len, bool in7_validity, gdv_int32* out_len) {
+    int64_t context, const char* in1, int32_t in1_len, bool in1_validity,
+    const char* in2, int32_t in2_len, bool in2_validity, const char* in3,
+    int32_t in3_len, bool in3_validity, const char* in4, int32_t in4_len,
+    bool in4_validity, const char* in5, int32_t in5_len, bool in5_validity,
+    const char* in6, int32_t in6_len, bool in6_validity, const char* in7,
+    int32_t in7_len, bool in7_validity, int32_t* out_len) {
   if (!in1_validity) {
     in1_len = 0;
   }
@@ -979,10 +979,10 @@ const char* concat_utf8_utf8_utf8_utf8_utf8_utf8_utf8(
 
 FORCE_INLINE
 const char* concatOperator_utf8_utf8_utf8_utf8_utf8_utf8_utf8(
-    gdv_int64 context, const char* in1, gdv_int32 in1_len, const char* in2,
-    gdv_int32 in2_len, const char* in3, gdv_int32 in3_len, const char* in4,
-    gdv_int32 in4_len, const char* in5, gdv_int32 in5_len, const char* in6,
-    gdv_int32 in6_len, const char* in7, gdv_int32 in7_len, gdv_int32* out_len) {
+    int64_t context, const char* in1, int32_t in1_len, const char* in2,
+    int32_t in2_len, const char* in3, int32_t in3_len, const char* in4,
+    int32_t in4_len, const char* in5, int32_t in5_len, const char* in6,
+    int32_t in6_len, const char* in7, int32_t in7_len, int32_t* out_len) {
   *out_len = in1_len + in2_len + in3_len + in4_len + in5_len + in6_len + in7_len;
   if (*out_len <= 0) {
     *out_len = 0;
@@ -1006,13 +1006,13 @@ const char* concatOperator_utf8_utf8_utf8_utf8_utf8_utf8_utf8(
 
 FORCE_INLINE
 const char* concat_utf8_utf8_utf8_utf8_utf8_utf8_utf8_utf8(
-    gdv_int64 context, const char* in1, gdv_int32 in1_len, bool in1_validity,
-    const char* in2, gdv_int32 in2_len, bool in2_validity, const char* in3,
-    gdv_int32 in3_len, bool in3_validity, const char* in4, gdv_int32 in4_len,
-    bool in4_validity, const char* in5, gdv_int32 in5_len, bool in5_validity,
-    const char* in6, gdv_int32 in6_len, bool in6_validity, const char* in7,
-    gdv_int32 in7_len, bool in7_validity, const char* in8, gdv_int32 in8_len,
-    bool in8_validity, gdv_int32* out_len) {
+    int64_t context, const char* in1, int32_t in1_len, bool in1_validity,
+    const char* in2, int32_t in2_len, bool in2_validity, const char* in3,
+    int32_t in3_len, bool in3_validity, const char* in4, int32_t in4_len,
+    bool in4_validity, const char* in5, int32_t in5_len, bool in5_validity,
+    const char* in6, int32_t in6_len, bool in6_validity, const char* in7,
+    int32_t in7_len, bool in7_validity, const char* in8, int32_t in8_len,
+    bool in8_validity, int32_t* out_len) {
   if (!in1_validity) {
     in1_len = 0;
   }
@@ -1044,11 +1044,11 @@ const char* concat_utf8_utf8_utf8_utf8_utf8_utf8_utf8_utf8(
 
 FORCE_INLINE
 const char* concatOperator_utf8_utf8_utf8_utf8_utf8_utf8_utf8_utf8(
-    gdv_int64 context, const char* in1, gdv_int32 in1_len, const char* in2,
-    gdv_int32 in2_len, const char* in3, gdv_int32 in3_len, const char* in4,
-    gdv_int32 in4_len, const char* in5, gdv_int32 in5_len, const char* in6,
-    gdv_int32 in6_len, const char* in7, gdv_int32 in7_len, const char* in8,
-    gdv_int32 in8_len, gdv_int32* out_len) {
+    int64_t context, const char* in1, int32_t in1_len, const char* in2,
+    int32_t in2_len, const char* in3, int32_t in3_len, const char* in4,
+    int32_t in4_len, const char* in5, int32_t in5_len, const char* in6,
+    int32_t in6_len, const char* in7, int32_t in7_len, const char* in8,
+    int32_t in8_len, int32_t* out_len) {
   *out_len =
       in1_len + in2_len + in3_len + in4_len + in5_len + in6_len + in7_len + in8_len;
   if (*out_len <= 0) {
@@ -1075,14 +1075,14 @@ const char* concatOperator_utf8_utf8_utf8_utf8_utf8_utf8_utf8_utf8(
 
 FORCE_INLINE
 const char* concat_utf8_utf8_utf8_utf8_utf8_utf8_utf8_utf8_utf8(
-    gdv_int64 context, const char* in1, gdv_int32 in1_len, bool in1_validity,
-    const char* in2, gdv_int32 in2_len, bool in2_validity, const char* in3,
-    gdv_int32 in3_len, bool in3_validity, const char* in4, gdv_int32 in4_len,
-    bool in4_validity, const char* in5, gdv_int32 in5_len, bool in5_validity,
-    const char* in6, gdv_int32 in6_len, bool in6_validity, const char* in7,
-    gdv_int32 in7_len, bool in7_validity, const char* in8, gdv_int32 in8_len,
-    bool in8_validity, const char* in9, gdv_int32 in9_len, bool in9_validity,
-    gdv_int32* out_len) {
+    int64_t context, const char* in1, int32_t in1_len, bool in1_validity,
+    const char* in2, int32_t in2_len, bool in2_validity, const char* in3,
+    int32_t in3_len, bool in3_validity, const char* in4, int32_t in4_len,
+    bool in4_validity, const char* in5, int32_t in5_len, bool in5_validity,
+    const char* in6, int32_t in6_len, bool in6_validity, const char* in7,
+    int32_t in7_len, bool in7_validity, const char* in8, int32_t in8_len,
+    bool in8_validity, const char* in9, int32_t in9_len, bool in9_validity,
+    int32_t* out_len) {
   if (!in1_validity) {
     in1_len = 0;
   }
@@ -1117,11 +1117,11 @@ const char* concat_utf8_utf8_utf8_utf8_utf8_utf8_utf8_utf8_utf8(
 
 FORCE_INLINE
 const char* concatOperator_utf8_utf8_utf8_utf8_utf8_utf8_utf8_utf8_utf8(
-    gdv_int64 context, const char* in1, gdv_int32 in1_len, const char* in2,
-    gdv_int32 in2_len, const char* in3, gdv_int32 in3_len, const char* in4,
-    gdv_int32 in4_len, const char* in5, gdv_int32 in5_len, const char* in6,
-    gdv_int32 in6_len, const char* in7, gdv_int32 in7_len, const char* in8,
-    gdv_int32 in8_len, const char* in9, gdv_int32 in9_len, gdv_int32* out_len) {
+    int64_t context, const char* in1, int32_t in1_len, const char* in2,
+    int32_t in2_len, const char* in3, int32_t in3_len, const char* in4,
+    int32_t in4_len, const char* in5, int32_t in5_len, const char* in6,
+    int32_t in6_len, const char* in7, int32_t in7_len, const char* in8,
+    int32_t in8_len, const char* in9, int32_t in9_len, int32_t* out_len) {
   *out_len = in1_len + in2_len + in3_len + in4_len + in5_len + in6_len + in7_len +
              in8_len + in9_len;
   if (*out_len <= 0) {
@@ -1151,14 +1151,14 @@ const char* concatOperator_utf8_utf8_utf8_utf8_utf8_utf8_utf8_utf8_utf8(
 
 FORCE_INLINE
 const char* concat_utf8_utf8_utf8_utf8_utf8_utf8_utf8_utf8_utf8_utf8(
-    gdv_int64 context, const char* in1, gdv_int32 in1_len, bool in1_validity,
-    const char* in2, gdv_int32 in2_len, bool in2_validity, const char* in3,
-    gdv_int32 in3_len, bool in3_validity, const char* in4, gdv_int32 in4_len,
-    bool in4_validity, const char* in5, gdv_int32 in5_len, bool in5_validity,
-    const char* in6, gdv_int32 in6_len, bool in6_validity, const char* in7,
-    gdv_int32 in7_len, bool in7_validity, const char* in8, gdv_int32 in8_len,
-    bool in8_validity, const char* in9, gdv_int32 in9_len, bool in9_validity,
-    const char* in10, gdv_int32 in10_len, bool in10_validity, gdv_int32* out_len) {
+    int64_t context, const char* in1, int32_t in1_len, bool in1_validity,
+    const char* in2, int32_t in2_len, bool in2_validity, const char* in3,
+    int32_t in3_len, bool in3_validity, const char* in4, int32_t in4_len,
+    bool in4_validity, const char* in5, int32_t in5_len, bool in5_validity,
+    const char* in6, int32_t in6_len, bool in6_validity, const char* in7,
+    int32_t in7_len, bool in7_validity, const char* in8, int32_t in8_len,
+    bool in8_validity, const char* in9, int32_t in9_len, bool in9_validity,
+    const char* in10, int32_t in10_len, bool in10_validity, int32_t* out_len) {
   if (!in1_validity) {
     in1_len = 0;
   }
@@ -1196,12 +1196,12 @@ const char* concat_utf8_utf8_utf8_utf8_utf8_utf8_utf8_utf8_utf8_utf8(
 
 FORCE_INLINE
 const char* concatOperator_utf8_utf8_utf8_utf8_utf8_utf8_utf8_utf8_utf8_utf8(
-    gdv_int64 context, const char* in1, gdv_int32 in1_len, const char* in2,
-    gdv_int32 in2_len, const char* in3, gdv_int32 in3_len, const char* in4,
-    gdv_int32 in4_len, const char* in5, gdv_int32 in5_len, const char* in6,
-    gdv_int32 in6_len, const char* in7, gdv_int32 in7_len, const char* in8,
-    gdv_int32 in8_len, const char* in9, gdv_int32 in9_len, const char* in10,
-    gdv_int32 in10_len, gdv_int32* out_len) {
+    int64_t context, const char* in1, int32_t in1_len, const char* in2,
+    int32_t in2_len, const char* in3, int32_t in3_len, const char* in4,
+    int32_t in4_len, const char* in5, int32_t in5_len, const char* in6,
+    int32_t in6_len, const char* in7, int32_t in7_len, const char* in8,
+    int32_t in8_len, const char* in9, int32_t in9_len, const char* in10,
+    int32_t in10_len, int32_t* out_len) {
   *out_len = in1_len + in2_len + in3_len + in4_len + in5_len + in6_len + in7_len +
              in8_len + in9_len + in10_len;
   if (*out_len <= 0) {
@@ -1233,8 +1233,8 @@ const char* concatOperator_utf8_utf8_utf8_utf8_utf8_utf8_utf8_utf8_utf8_utf8(
 }
 
 FORCE_INLINE
-const char* convert_fromUTF8_binary(gdv_int64 context, const char* bin_in, gdv_int32 len,
-                                    gdv_int32* out_len) {
+const char* convert_fromUTF8_binary(int64_t context, const char* bin_in, int32_t len,
+                                    int32_t * out_len) {
   *out_len = len;
   char* ret = reinterpret_cast<char*>(gdv_fn_context_arena_malloc(context, *out_len));
   if (ret == nullptr) {
@@ -1248,16 +1248,15 @@ const char* convert_fromUTF8_binary(gdv_int64 context, const char* bin_in, gdv_i
 
 // Search for a string within another string
 FORCE_INLINE
-gdv_int32 locate_utf8_utf8(gdv_int64 context, const char* sub_str, gdv_int32 sub_str_len,
-                           const char* str, gdv_int32 str_len) {
+int32_t locate_utf8_utf8(int64_t context, const char* sub_str, int32_t sub_str_len,
+                         const char* str, int32_t str_len) {
   return locate_utf8_utf8_int32(context, sub_str, sub_str_len, str, str_len, 1);
 }
 
 // Search for a string within another string starting at position start-pos (1-indexed)
 FORCE_INLINE
-gdv_int32 locate_utf8_utf8_int32(gdv_int64 context, const char* sub_str,
-                                 gdv_int32 sub_str_len, const char* str,
-                                 gdv_int32 str_len, gdv_int32 start_pos) {
+int32_t locate_utf8_utf8_int32(int64_t context, const char* sub_str, int32_t sub_str_len,
+                               const char* str, int32_t str_len, int32_t start_pos) {
   if (start_pos < 1) {
     gdv_fn_context_set_error_msg(context, "Start position must be greater than 0");
     return 0;
@@ -1267,11 +1266,11 @@ gdv_int32 locate_utf8_utf8_int32(gdv_int64 context, const char* sub_str,
     return 0;
   }
 
-  gdv_int32 byte_pos = utf8_byte_pos(context, str, str_len, start_pos - 1);
+  int32_t byte_pos = utf8_byte_pos(context, str, str_len, start_pos - 1);
   if (byte_pos < 0 || byte_pos >= str_len) {
     return 0;
   }
-  for (gdv_int32 i = byte_pos; i <= str_len - sub_str_len; ++i) {
+  for (int32_t i = byte_pos; i <= str_len - sub_str_len; ++i) {
     if (memcmp(str + i, sub_str, sub_str_len) == 0) {
       return utf8_length(context, str, i) + 1;
     }
@@ -1280,12 +1279,12 @@ gdv_int32 locate_utf8_utf8_int32(gdv_int64 context, const char* sub_str,
 }
 
 FORCE_INLINE
-const char* replace_with_max_len_utf8_utf8_utf8(gdv_int64 context, const char* text,
-                                                gdv_int32 text_len, const char* from_str,
-                                                gdv_int32 from_str_len,
-                                                const char* to_str, gdv_int32 to_str_len,
-                                                gdv_int32 max_length,
-                                                gdv_int32* out_len) {
+const char* replace_with_max_len_utf8_utf8_utf8(int64_t context, const char* text,
+                                                int32_t text_len, const char* from_str,
+                                                int32_t from_str_len,
+                                                const char* to_str, int32_t to_str_len,
+                                                int32_t max_length,
+                                                int32_t* out_len) {
   // if from_str is empty or its length exceeds that of original string,
   // return the original string
   if (from_str_len <= 0 || from_str_len > text_len) {
@@ -1294,10 +1293,10 @@ const char* replace_with_max_len_utf8_utf8_utf8(gdv_int64 context, const char* t
   }
 
   bool found = false;
-  gdv_int32 text_index = 0;
+  int32_t text_index = 0;
   char* out;
-  gdv_int32 out_index = 0;
-  gdv_int32 last_match_index =
+  int32_t out_index = 0;
+  int32_t last_match_index =
       0;  // defer copying string from last_match_index till next match is found
 
   for (; text_index <= text_len - from_str_len;) {
@@ -1349,19 +1348,19 @@ const char* replace_with_max_len_utf8_utf8_utf8(gdv_int64 context, const char* t
 }
 
 FORCE_INLINE
-const char* replace_utf8_utf8_utf8(gdv_int64 context, const char* text,
-                                   gdv_int32 text_len, const char* from_str,
-                                   gdv_int32 from_str_len, const char* to_str,
-                                   gdv_int32 to_str_len, gdv_int32* out_len) {
+const char* replace_utf8_utf8_utf8(int64_t context, const char* text,
+                                   int32_t text_len, const char* from_str,
+                                   int32_t from_str_len, const char* to_str,
+                                   int32_t to_str_len, int32_t* out_len) {
   return replace_with_max_len_utf8_utf8_utf8(context, text, text_len, from_str,
                                              from_str_len, to_str, to_str_len, 65535,
                                              out_len);
 }
 
 FORCE_INLINE
-const char* split_part(gdv_int64 context, const char* text, gdv_int32 text_len,
-                       const char* delimiter, gdv_int32 delim_len, gdv_int32 index,
-                       gdv_int32* out_len) {
+const char* split_part(int64_t context, const char* text, int32_t text_len,
+                       const char* delimiter, int32_t delim_len, int32_t index,
+                       int32_t* out_len) {
   *out_len = 0;
   if (index < 1) {
     char error_message[100];
@@ -1418,8 +1417,8 @@ const char* split_part(gdv_int64 context, const char* text, gdv_int32 text_len,
 }
 
 FORCE_INLINE
-const char* binary_string(gdv_int64 context, const char* text, gdv_int32 text_len,
-                          gdv_int32* out_len) {
+const char* binary_string(int64_t context, const char* text, int32_t text_len,
+                          int32_t* out_len) {
   gdv_binary ret =
       reinterpret_cast<gdv_binary>(gdv_fn_context_arena_malloc(context, text_len));
 
