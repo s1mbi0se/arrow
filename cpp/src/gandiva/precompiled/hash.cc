@@ -113,11 +113,11 @@ static inline gdv_uint64 double_to_long_bits(double value) {
   return result;
 }
 
-FORCE_INLINE gdv_int64 hash64(double val, gdv_int64 seed) {
-  return murmur3_64(double_to_long_bits(val), static_cast<gdv_int32>(seed));
+FORCE_INLINE int64_t hash64(double val, int64_t seed) {
+  return murmur3_64(double_to_long_bits(val), static_cast<int32_t>(seed));
 }
 
-FORCE_INLINE gdv_int32 hash32(double val, gdv_int32 seed) {
+FORCE_INLINE int32_t hash32(double val, int32_t seed) {
   return murmur3_32(double_to_long_bits(val), seed);
 }
 
@@ -337,11 +337,11 @@ static gdv_uint32 murmur3_32_buf(const gdv_uint8* key, gdv_int32 len, gdv_int32 
   return static_cast<gdv_uint32>(lh1 & UINT_MASK);
 }
 
-FORCE_INLINE gdv_int64 hash64_buf(const gdv_uint8* buf, int len, gdv_int64 seed) {
-  return murmur3_64_buf(buf, len, static_cast<gdv_int32>(seed));
+FORCE_INLINE int64_t hash64_buf(const gdv_uint8* buf, int len, int64_t seed) {
+  return murmur3_64_buf(buf, len, static_cast<int32_t>(seed));
 }
 
-FORCE_INLINE gdv_int32 hash32_buf(const gdv_uint8* buf, int len, gdv_int32 seed) {
+FORCE_INLINE int32_t hash32_buf(const gdv_uint8* buf, int len, int32_t seed) {
   return murmur3_32_buf(buf, len, seed);
 }
 
