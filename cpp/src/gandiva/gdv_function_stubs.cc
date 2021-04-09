@@ -33,9 +33,9 @@
 #include "gandiva/in_holder.h"
 #include "gandiva/like_holder.h"
 #include "gandiva/precompiled/types.h"
+#include "gandiva/precompiled/epoch_time_point.h"
 #include "gandiva/random_generator_holder.h"
 #include "gandiva/to_date_functions_holder.h"
-#include "gandiva/precompiled/epoch_time_point.h"
 
 /// Stub functions that can be accessed from LLVM or the pre-compiled library.
 
@@ -130,13 +130,14 @@ int32_t gdv_fn_to_time_utf8_utf8(int64_t context_ptr, int64_t holder_ptr,
       reinterpret_cast<gandiva::ExecutionContext*>(context_ptr);
   gandiva::ToTimeHolder* holder = reinterpret_cast<gandiva::ToTimeHolder*>(holder_ptr);
 
-  int64_t millis_since_epoch = (*holder)(context, data, data_len, in1_validity, out_valid);
+  int64_t millis_since_epoch =
+      (*holder)(context, data, data_len, in1_validity, out_valid);
 
   EpochTimePoint base_epoch(millis_since_epoch);
   EpochTimePoint base_epoch_without_time = base_epoch.ClearTimeOfDay();
 
-  int64_t millis_since_midnight = base_epoch.MillisSinceEpoch() -
-                                  base_epoch_without_time.MillisSinceEpoch();
+  int64_t millis_since_midnight =
+      base_epoch.MillisSinceEpoch() - base_epoch_without_time.MillisSinceEpoch();
 
   return static_cast<int32_t>(millis_since_midnight);
 }
@@ -150,13 +151,14 @@ int32_t gdv_fn_to_time_utf8_utf8_int32(int64_t context_ptr, int64_t holder_ptr,
       reinterpret_cast<gandiva::ExecutionContext*>(context_ptr);
   gandiva::ToTimeHolder* holder = reinterpret_cast<gandiva::ToTimeHolder*>(holder_ptr);
 
-  int64_t millis_since_epoch = (*holder)(context, data, data_len, in1_validity, out_valid);
+  int64_t millis_since_epoch =
+      (*holder)(context, data, data_len, in1_validity, out_valid);
 
   EpochTimePoint base_epoch(millis_since_epoch);
   EpochTimePoint base_epoch_without_time = base_epoch.ClearTimeOfDay();
 
-  int64_t millis_since_midnight = base_epoch.MillisSinceEpoch() -
-      base_epoch_without_time.MillisSinceEpoch();
+  int64_t millis_since_midnight =
+      base_epoch.MillisSinceEpoch() - base_epoch_without_time.MillisSinceEpoch();
 
   return static_cast<int32_t>(millis_since_midnight);
 }
