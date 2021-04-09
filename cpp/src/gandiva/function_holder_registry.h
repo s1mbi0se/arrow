@@ -65,7 +65,8 @@ class FunctionHolderRegistry {
         {"like", LAMBDA_MAKER(LikeHolder)},
         {"ilike", LAMBDA_MAKER(LikeHolder)},
         {"to_date", LAMBDA_MAKER(ToDateHolder)},
-        {"to_number", LAMBDA_MAKER(DecimalFormatHolder)},
+        {"to_numberFLOAT4", LAMBDA_MAKER(DecimalFormatHolder)},
+        {"to_numberFLOAT8", LAMBDA_MAKER(DecimalFormatHolder)},
         {"random", LAMBDA_MAKER(RandomGeneratorHolder)},
         {"rand", LAMBDA_MAKER(RandomGeneratorHolder)},
     };
