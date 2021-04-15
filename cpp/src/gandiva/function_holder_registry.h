@@ -23,11 +23,10 @@
 #include <unordered_map>
 
 #include "arrow/status.h"
-
 #include "gandiva/function_holder.h"
-#include "gandiva/like_holder.h"
 #include "gandiva/node.h"
 #include "gandiva/random_generator_holder.h"
+#include "gandiva/string_function_holder.h"
 #include "gandiva/to_date_holder.h"
 
 namespace gandiva {
@@ -66,6 +65,7 @@ class FunctionHolderRegistry {
         {"to_date", LAMBDA_MAKER(ToDateHolder)},
         {"random", LAMBDA_MAKER(RandomGeneratorHolder)},
         {"rand", LAMBDA_MAKER(RandomGeneratorHolder)},
+        {"regexp_extract", LAMBDA_MAKER(ExtractHolder)},
     };
     return maker_map;
   }

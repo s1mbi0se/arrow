@@ -15,9 +15,10 @@
 // specific language governing permissions and limitations
 // under the License.
 
-#include "gandiva/like_holder.h"
+#include "gandiva/string_function_holder.h"
 
 #include <regex>
+
 #include "gandiva/node.h"
 #include "gandiva/regex_util.h"
 
@@ -149,6 +150,28 @@ Status LikeHolder::Make(const std::string& sql_pattern,
 
   ARROW_RETURN_IF(!lholder->regex_.ok(),
                   Status::Invalid("Building RE2 pattern '", pcre_pattern, "' failed"));
+  *holder = lholder;
+  return Status::OK();
+}
+
+Status ExtractHolder::Make(const FunctionNode& node,
+                           std::shared_ptr<ExtractHolder>* holder) {
+  ARROW_RETURN_IF(node.children().size() != 3,
+                  Status::Invalid("'extract' function requires three parameters"));
+
+  auto literal = dynamic_cast<LiteralNode*>(node.children().at(1).get());
+  ARROW_RETURN_IF(
+      literal == nullptr || !IsArrowStringLiteral(literal->return_type()->id()),
+      Status::Invalid("'extract' function requires a literal as the second parameter"));
+
+  return ExtractHolder::Make(arrow::util::get<std::string>(literal->holder()), holder);
+}
+
+Status ExtractHolder::Make(const std::string& sql_pattern,
+                           std::shared_ptr<ExtractHolder>* holder) {
+  auto lholder = std::shared_ptr<ExtractHolder>(new ExtractHolder(sql_pattern));
+  ARROW_RETURN_IF(!lholder->regex_.ok(),
+                  Status::Invalid("Building RE2 pattern '", sql_pattern, "' failed"));
 
   *holder = lholder;
   return Status::OK();

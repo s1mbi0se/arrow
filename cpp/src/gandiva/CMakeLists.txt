@@ -82,7 +82,7 @@ set(SRC_FILES
     hash_utils.cc
     llvm_generator.cc
     llvm_types.cc
-    like_holder.cc
+    string_function_holder.cc
     literal_holder.cc
     projector.cc
     regex_util.cc
@@ -232,7 +232,7 @@ add_gandiva_test(internals-test
                  lru_cache_test.cc
                  to_date_holder_test.cc
                  simple_arena_test.cc
-                 like_holder_test.cc
+                 string_function_holder_test.cc
                  decimal_type_util_test.cc
                  random_generator_holder_test.cc
                  hash_utils_test.cc
