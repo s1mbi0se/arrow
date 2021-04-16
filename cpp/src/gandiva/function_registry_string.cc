@@ -114,6 +114,10 @@ std::vector<NativeFunction> GetStringFunctionRegistry() {
                      kResultNullIfNull, "gdv_fn_castVARCHAR_int64_int64",
                      NativeFunction::kNeedsContext | NativeFunction::kCanReturnErrors),
 
+      NativeFunction("castVARCHAR", {}, DataTypeVector{timestamp(), int64()}, utf8(),
+                     kResultNullIfNull, "gdv_fn_castVARCHAR_milliseconds",
+                     NativeFunction::kNeedsContext | NativeFunction::kCanReturnErrors),
+
       NativeFunction("castVARCHAR", {}, DataTypeVector{float32(), int64()}, utf8(),
                      kResultNullIfNull, "gdv_fn_castVARCHAR_float32_int64",
                      NativeFunction::kNeedsContext | NativeFunction::kCanReturnErrors),
@@ -121,6 +125,10 @@ std::vector<NativeFunction> GetStringFunctionRegistry() {
       NativeFunction("castVARCHAR", {}, DataTypeVector{float64(), int64()}, utf8(),
                      kResultNullIfNull, "gdv_fn_castVARCHAR_float64_int64",
                      NativeFunction::kNeedsContext | NativeFunction::kCanReturnErrors),
+
+      NativeFunction("castVARCHAR", {}, DataTypeVector{decimal128(), int64()}, utf8(),
+                     kResultNullIfNull, "castVARCHAR_decimal128_int64",
+                     NativeFunction::kNeedsContext),
 
       NativeFunction("castVARCHAR", {}, DataTypeVector{decimal128(), int64()}, utf8(),
                      kResultNullIfNull, "castVARCHAR_decimal128_int64",

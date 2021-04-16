@@ -978,6 +978,15 @@ void ExportedStubFunctions::AddMappings(Engine* engine) const {
       "gdv_fn_castVARCHAR_int64_int64", types->i8_ptr_type() /*return_type*/, args,
       reinterpret_cast<void*>(gdv_fn_castVARCHAR_int64_int64));
 
+    // gdv_fn_castVARCHAR_milliseconds
+    args = {types->i64_type(),       // int64_t execution_context
+            types->i64_type(),       // gdv_timestamp value
+            types->i64_type(),       // int64_t len
+            types->i32_ptr_type()};  // int32_t* out_len
+    engine->AddGlobalMappingForFunc(
+            "gdv_fn_castVARCHAR_milliseconds", types->i8_ptr_type() /*return_type*/, args,
+            reinterpret_cast<void*>(gdv_fn_castVARCHAR_int64_int64));
+
   // gdv_fn_castVARCHAR_float32_int64
   args = {types->i64_type(),       // int64_t execution_context
           types->float_type(),     // float value
