@@ -828,4 +828,14 @@ gdv_int64 castBIGINT_daytimeinterval(gdv_day_time_interval in) {
          extractDay_daytimeinterval(in) * MILLIS_IN_DAY;
 }
 
+FORCE_INLINE
+gdv_int32 castNULLABLEINT_yearinterval(gdv_year_interval in) {
+  return static_cast<gdv_int32>(in);
+}
+
+FORCE_INLINE
+gdv_int64 castNULLABLEBIGINT_yearinterval(gdv_year_interval in) {
+  return static_cast<gdv_int64>(in);
+}
+
 }  // extern "C"
