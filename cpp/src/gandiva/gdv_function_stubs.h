@@ -41,6 +41,7 @@ using gdv_time32 = int32_t;
 using gdv_timestamp = int64_t;
 using gdv_utf8 = char*;
 using gdv_binary = char*;
+using gdv_year_interval = int32_t;
 using gdv_day_time_interval = int64_t;
 
 bool gdv_fn_like_utf8_utf8(int64_t ptr, const char* data, int data_len,
