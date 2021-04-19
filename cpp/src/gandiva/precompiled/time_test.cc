@@ -744,6 +744,9 @@ TEST(TestTime, TestLastDay) {
 }
 
 TEST(TestTime, TestCastNullable) {
+  ExecutionContext context;
+  auto context_ptr = reinterpret_cast<int64_t>(&context);
+
   // Test castNULLABLEINT for interval year
   EXPECT_EQ(castNULLABLEINT_yearinterval(1), 0);
   EXPECT_EQ(castNULLABLEINT_yearinterval(12), 1);
@@ -767,14 +770,14 @@ TEST(TestTime, TestCastNullable) {
   EXPECT_EQ(castNULLABLEBIGINT_yearinterval(12), 1);
 
   // Test castNULLABLEINTERVALYEAR for int and bigint
-  EXPECT_EQ(castNULLABLEINTERVALYEAR_int32(1), 0);
-  EXPECT_EQ(castNULLABLEINTERVALYEAR_int32(12), 1);
-  EXPECT_EQ(castNULLABLEINTERVALYEAR_int32(55), 4);
-  EXPECT_EQ(castNULLABLEINTERVALYEAR_int32(1201), 100);
-  EXPECT_EQ(castNULLABLEINTERVALYEAR_int64(1), 0);
-  EXPECT_EQ(castNULLABLEINTERVALYEAR_int64(12), 1);
-  EXPECT_EQ(castNULLABLEINTERVALYEAR_int64(55), 4);
-  EXPECT_EQ(castNULLABLEINTERVALYEAR_int64(1201), 100);
+  EXPECT_EQ(castNULLABLEINTERVALYEAR_int32(context_ptr, 1), 1);
+  EXPECT_EQ(castNULLABLEINTERVALYEAR_int32(context_ptr, 12), 12);
+  EXPECT_EQ(castNULLABLEINTERVALYEAR_int32(context_ptr, 55), 55);
+  EXPECT_EQ(castNULLABLEINTERVALYEAR_int32(context_ptr, 1201), 1201);
+  EXPECT_EQ(castNULLABLEINTERVALYEAR_int64(context_ptr, 1), 1);
+  EXPECT_EQ(castNULLABLEINTERVALYEAR_int64(context_ptr, 12), 12);
+  EXPECT_EQ(castNULLABLEINTERVALYEAR_int64(context_ptr, 55), 55);
+  EXPECT_EQ(castNULLABLEINTERVALYEAR_int64(context_ptr, 1201), 1201);
 
 }
 
