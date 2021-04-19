@@ -80,11 +80,27 @@ std::vector<NativeFunction> GetDateTimeFunctionRegistry() {
       NativeFunction("castTIME", {}, DataTypeVector{timestamp()}, time32(),
                      kResultNullIfNull, "castTIME_timestamp"),
 
-      NativeFunction("castNULLABLEINT", {}, DataTypeVector{int32()}, int32(),
+      NativeFunction("castNULLABLEINT", {}, DataTypeVector{month_interval()}, int32(),
                      kResultNullIfNull, "castNULLABLEINT_yearinterval"),
 
-      NativeFunction("castNULLABLEBIGINT", {}, DataTypeVector{int32()}, int64(),
+      NativeFunction("castNULLABLEBIGINT", {}, DataTypeVector{month_interval()}, int64(),
                      kResultNullIfNull, "castNULLABLEBIGINT_yearinterval"),
+
+      NativeFunction("castNULLABLEINTERVALYEAR", {}, DataTypeVector{int32()}, month_interval(),
+                     kResultNullIfNull, "castNULLABLEINTERVALYEAR_int32",
+                     NativeFunction::kNeedsContext | NativeFunction::kCanReturnErrors),
+
+      NativeFunction("castNULLABLEINTERVALYEAR", {}, DataTypeVector{int64()}, month_interval(),
+                     kResultNullIfNull, "castNULLABLEINTERVALYEAR_int64",
+                     NativeFunction::kNeedsContext | NativeFunction::kCanReturnErrors),
+
+      NativeFunction("castNULLABLEINTERVALDAY", {}, DataTypeVector{int32()}, day_time_interval(),
+                     kResultNullIfNull, "castNULLABLEINTERVALDAY_int32",
+                     NativeFunction::kNeedsContext | NativeFunction::kCanReturnErrors),
+
+      NativeFunction("castNULLABLEINTERVALDAY", {}, DataTypeVector{int64()}, day_time_interval(),
+                     kResultNullIfNull, "castNULLABLEINTERVALDAY_int64",
+                     NativeFunction::kNeedsContext | NativeFunction::kCanReturnErrors),
 
       NativeFunction("castBIGINT", {}, DataTypeVector{day_time_interval()}, int64(),
                      kResultNullIfNull, "castBIGINT_daytimeinterval"),

@@ -743,4 +743,39 @@ TEST(TestTime, TestLastDay) {
   EXPECT_EQ(StringToTimestamp("2015-12-31 00:00:00"), out);
 }
 
+TEST(TestTime, TestCastNullable) {
+  // Test castNULLABLEINT for interval year
+  EXPECT_EQ(castNULLABLEINT_yearinterval(1), 0);
+  EXPECT_EQ(castNULLABLEINT_yearinterval(12), 1);
+  EXPECT_EQ(castNULLABLEINT_yearinterval(55), 4);
+  EXPECT_EQ(castNULLABLEINT_yearinterval(1201), 100);
+  EXPECT_EQ(castNULLABLEINT_yearinterval(-1), 0);
+  EXPECT_EQ(castNULLABLEINT_yearinterval(-12), -1);
+  EXPECT_EQ(castNULLABLEINT_yearinterval(-55), -4);
+  EXPECT_EQ(castNULLABLEINT_yearinterval(-1201), -100);
+  EXPECT_EQ(castNULLABLEINT_yearinterval(12), 1);
+
+  // Test castNULLABLEBIGINT for interval year
+  EXPECT_EQ(castNULLABLEBIGINT_yearinterval(1), 0);
+  EXPECT_EQ(castNULLABLEBIGINT_yearinterval(12), 1);
+  EXPECT_EQ(castNULLABLEBIGINT_yearinterval(55), 4);
+  EXPECT_EQ(castNULLABLEBIGINT_yearinterval(1201), 100);
+  EXPECT_EQ(castNULLABLEBIGINT_yearinterval(-1), 0);
+  EXPECT_EQ(castNULLABLEBIGINT_yearinterval(-12), -1);
+  EXPECT_EQ(castNULLABLEBIGINT_yearinterval(-55), -4);
+  EXPECT_EQ(castNULLABLEBIGINT_yearinterval(-1201), -100);
+  EXPECT_EQ(castNULLABLEBIGINT_yearinterval(12), 1);
+
+  // Test castNULLABLEINTERVALYEAR for int and bigint
+  EXPECT_EQ(castNULLABLEINTERVALYEAR_int32(1), 0);
+  EXPECT_EQ(castNULLABLEINTERVALYEAR_int32(12), 1);
+  EXPECT_EQ(castNULLABLEINTERVALYEAR_int32(55), 4);
+  EXPECT_EQ(castNULLABLEINTERVALYEAR_int32(1201), 100);
+  EXPECT_EQ(castNULLABLEINTERVALYEAR_int64(1), 0);
+  EXPECT_EQ(castNULLABLEINTERVALYEAR_int64(12), 1);
+  EXPECT_EQ(castNULLABLEINTERVALYEAR_int64(55), 4);
+  EXPECT_EQ(castNULLABLEINTERVALYEAR_int64(1201), 100);
+
+}
+
 }  // namespace gandiva

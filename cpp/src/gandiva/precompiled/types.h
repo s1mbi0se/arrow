@@ -454,4 +454,16 @@ float castFLOAT4_utf8(int64_t context, const char* data, int32_t len);
 
 double castFLOAT8_utf8(int64_t context, const char* data, int32_t len);
 
+gdv_int32 castNULLABLEINT_yearinterval(gdv_year_interval in);
+
+gdv_int64 castNULLABLEBIGINT_yearinterval(gdv_year_interval in);
+
+gdv_day_time_interval castNULLABLEINTERVALDAY_int32(int64_t context, gdv_int32 in);
+
+gdv_day_time_interval castNULLABLEINTERVALDAY_int64(int64_t context, gdv_int64 in);
+
+gdv_year_interval castNULLABLEINTERVALYEAR_int32(int64_t context, gdv_int32 in);
+
+gdv_year_interval castNULLABLEINTERVALYEAR_int64(int64_t context, gdv_int64 in);
+
 }  // extern "C"
