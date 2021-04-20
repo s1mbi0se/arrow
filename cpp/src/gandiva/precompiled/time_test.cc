@@ -769,6 +769,16 @@ TEST(TestTime, TestCastNullable) {
   EXPECT_EQ(castNULLABLEBIGINT_yearinterval(-1201), -100);
   EXPECT_EQ(castNULLABLEBIGINT_yearinterval(12), 1);
 
+  // Test castNULLABLEINTERVALDAY for int and bigint
+  EXPECT_EQ(castNULLABLEINTERVALDAY_int32(1), 1);
+  EXPECT_EQ(castNULLABLEINTERVALDAY_int32(12), 12);
+  EXPECT_EQ(castNULLABLEINTERVALDAY_int32(-55), -55);
+  EXPECT_EQ(castNULLABLEINTERVALDAY_int32(-1201), -1201);
+  EXPECT_EQ(castNULLABLEINTERVALDAY_int64(1), 1);
+  EXPECT_EQ(castNULLABLEINTERVALDAY_int64(12), 12);
+  EXPECT_EQ(castNULLABLEINTERVALDAY_int64(-55), -55);
+  EXPECT_EQ(castNULLABLEINTERVALDAY_int64(-1201), -1201);
+
   // Test castNULLABLEINTERVALYEAR for int and bigint
   EXPECT_EQ(castNULLABLEINTERVALYEAR_int32(context_ptr, 1), 1);
   EXPECT_EQ(castNULLABLEINTERVALYEAR_int32(context_ptr, 12), 12);
@@ -778,7 +788,10 @@ TEST(TestTime, TestCastNullable) {
   EXPECT_EQ(castNULLABLEINTERVALYEAR_int64(context_ptr, 12), 12);
   EXPECT_EQ(castNULLABLEINTERVALYEAR_int64(context_ptr, 55), 55);
   EXPECT_EQ(castNULLABLEINTERVALYEAR_int64(context_ptr, 1201), 1201);
-
+  // validate overflow error when using bigint as input
+  castNULLABLEINTERVALYEAR_int64(context_ptr, INT64_MAX);
+  EXPECT_EQ(context.get_error(), "Integer overflow");
+  context.Reset();
 }
 
 }  // namespace gandiva

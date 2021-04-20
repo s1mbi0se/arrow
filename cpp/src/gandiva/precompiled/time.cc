@@ -841,13 +841,8 @@ gdv_int64 castNULLABLEBIGINT_yearinterval(gdv_year_interval in) {
 
 #define CAST_NULLABLE_INTERVAL_DAY(TYPE)                                \
   FORCE_INLINE                                                          \
-  gdv_day_time_interval castNULLABLEINTERVALDAY_##TYPE(int64_t context, \
-                                                       gdv_##TYPE in) { \
-  gdv_##TYPE value = static_cast<gdv_##TYPE>(in);                       \
-  if (value != in) {                                                    \
-    gdv_fn_context_set_error_msg(context, "Integer overflow.");         \
-  }                                                                     \
-  return value;                                                         \
+  gdv_day_time_interval castNULLABLEINTERVALDAY_##TYPE(gdv_##TYPE in) { \
+    return static_cast<gdv_day_time_interval>(in);                      \
 }
 
 CAST_NULLABLE_INTERVAL_DAY(int32)
@@ -857,9 +852,9 @@ CAST_NULLABLE_INTERVAL_DAY(int64)
   FORCE_INLINE                                                           \
   gdv_year_interval castNULLABLEINTERVALYEAR_##TYPE(int64_t context,     \
                                                     gdv_##TYPE in) {     \
-  gdv_##TYPE value = static_cast<gdv_##TYPE>(in);                        \
+  gdv_##TYPE value = static_cast<gdv_year_interval>(in);                 \
   if (value != in) {                                                     \
-    gdv_fn_context_set_error_msg(context, "Integer overflow.");          \
+    gdv_fn_context_set_error_msg(context, "Integer overflow");           \
   }                                                                      \
   return value;                                                          \
 }
