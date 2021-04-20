@@ -842,7 +842,7 @@ gdv_int64 castNULLABLEBIGINT_yearinterval(gdv_year_interval in) {
 #define CAST_NULLABLE_INTERVAL_DAY(TYPE)                                \
   FORCE_INLINE                                                          \
   gdv_day_time_interval castNULLABLEINTERVALDAY_##TYPE(gdv_##TYPE in) { \
-    return static_cast<gdv_day_time_interval>(in);                      \
+  return static_cast<gdv_day_time_interval>(in);                        \
 }
 
 CAST_NULLABLE_INTERVAL_DAY(int32)
