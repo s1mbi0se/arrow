@@ -88,7 +88,7 @@ set(SRC_FILES
     regex_util.cc
     selection_vector.cc
     tree_expr_builder.cc
-        decimal_format_holder.cc
+    decimal_format_holder.cc
     to_date_holder.cc
     random_generator_holder.cc
     ${GANDIVA_PRECOMPILED_CC_PATH})
