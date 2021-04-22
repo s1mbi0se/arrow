@@ -79,6 +79,7 @@ set(SRC_FILES
     function_registry_timestamp_arithmetic.cc
     function_signature.cc
     gdv_function_stubs.cc
+    interval_holder.cc
     hash_utils.cc
     llvm_generator.cc
     llvm_types.cc
@@ -235,6 +236,7 @@ add_gandiva_test(internals-test
                  decimal_type_util_test.cc
                  random_generator_holder_test.cc
                  hash_utils_test.cc
+                 interval_holder_test.cc
                  gdv_function_stubs_test.cc
                  EXTRA_DEPENDENCIES
                  LLVM::LLVM_INTERFACE
