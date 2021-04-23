@@ -114,8 +114,8 @@ std::vector<NativeFunction> GetStringFunctionRegistry() {
                      kResultNullIfNull, "gdv_fn_castVARCHAR_int64_int64",
                      NativeFunction::kNeedsContext | NativeFunction::kCanReturnErrors),
 
-      NativeFunction("castVARCHAR", {}, DataTypeVector{timestamp(), int64()}, utf8(),
-                     kResultNullIfNull, "gdv_fn_castVARCHAR_milliseconds",
+      NativeFunction("castVARCHAR", {}, DataTypeVector{date64(), int64()}, utf8(),
+                     kResultNullIfNull, "gdv_fn_castVARCHAR_date64_int64",
                      NativeFunction::kNeedsContext | NativeFunction::kCanReturnErrors),
 
       NativeFunction("castVARCHAR", {}, DataTypeVector{float32(), int64()}, utf8(),

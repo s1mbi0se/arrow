@@ -277,6 +277,32 @@ TEST(TestGdvFnStubs, TestCastVARCHARFromInt64) {
   EXPECT_FALSE(ctx.has_error());
 }
 
+TEST(TestGdvFnStubs, TestCastVARCHARFromMilliseconds) {
+    gandiva::ExecutionContext ctx;
+    uint64_t ctx_ptr = reinterpret_cast<int64_t>(&ctx);
+    int32_t out_len = 0;
+
+    const char* out_str = gdv_fn_castVARCHAR_date64_int64(ctx_ptr, 1619218598237, 100, &out_len);
+    EXPECT_EQ(std::string(out_str, out_len), "2021-04-23");
+    EXPECT_FALSE(ctx.has_error());
+
+    out_str = gdv_fn_castVARCHAR_date64_int64(ctx_ptr, 1219218681272, 100, &out_len);
+    EXPECT_EQ(std::string(out_str, out_len), "2008-08-20");
+    EXPECT_FALSE(ctx.has_error());
+
+    out_str = gdv_fn_castVARCHAR_date64_int64(ctx_ptr, 1317218481272, 100, &out_len);
+    EXPECT_EQ(std::string(out_str, out_len), "2011-09-28");
+    EXPECT_FALSE(ctx.has_error());
+
+    out_str = gdv_fn_castVARCHAR_date64_int64(ctx_ptr, 1619218598237, 7, &out_len);
+    EXPECT_EQ(std::string(out_str, out_len), "2021-04");
+    EXPECT_FALSE(ctx.has_error());
+
+    out_str = gdv_fn_castVARCHAR_date64_int64(ctx_ptr, 1219218681272, 4, &out_len);
+    EXPECT_EQ(std::string(out_str, out_len), "2008");
+    EXPECT_FALSE(ctx.has_error());
+}
+
 TEST(TestGdvFnStubs, TestCastVARCHARFromFloat) {
   gandiva::ExecutionContext ctx;
   uint64_t ctx_ptr = reinterpret_cast<int64_t>(&ctx);
