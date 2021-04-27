@@ -1520,4 +1520,48 @@ const char* binary_string(gdv_int64 context, const char* text, gdv_int32 text_le
   return ret;
 }
 
+FORCE_INLINE
+const char* from_hex(gdv_int64 context, const char* text, gdv_int32 text_len,
+                     gdv_int32* out_len) {
+  if (text_len == 0) {
+    *out_len = 0;
+    return "";
+  }
+
+  // the input string should have a length multiple of two
+  if (text_len % 2 != 0) {
+    gdv_fn_context_set_error_msg(
+        context, "Error parsing hex string, length was not a multiple of two.");
+    *out_len = 0;
+    return "";
+  }
+
+  char* ret =
+      reinterpret_cast<char*>(gdv_fn_context_arena_malloc(context, text_len));
+
+  if (ret == nullptr) {
+    gdv_fn_context_set_error_msg(context, "Could not allocate memory for output string");
+    *out_len = 0;
+    return "";
+  }
+
+  // converting hex encoded string to normal string
+  int j = 0;
+  for (int i = 0; i < text_len; i+=2) {
+    char b1 = text[i];
+    char b2 = text[i + 1];
+    if (isxdigit(b1) && isxdigit(b2)) {
+      // [a-fA-F0-9]
+      ret[j++] = to_binary_from_hex(b1) * 16 + to_binary_from_hex(b2);
+    } else {
+      gdv_fn_context_set_error_msg(
+          context, "Error parsing hex string, one or more bytes are not valid.");
+      *out_len = 0;
+      return "";
+    }
+  }
+  *out_len = j;
+  return ret;
+}
+
 }  // extern "C"

@@ -999,6 +999,53 @@ TEST(TestStringOps, TestReplace) {
   ctx.Reset();
 }
 
+TEST(TestStringOps, TestFromHex) {
+  gandiva::ExecutionContext ctx;
+  uint64_t ctx_ptr = reinterpret_cast<gdv_int64>(&ctx);
+  gdv_int32 out_len = 0;
+  const char* out_str;
+
+  out_str = from_hex(ctx_ptr, "414243", 6, &out_len);
+  std::string output = std::string(out_str, out_len);
+  EXPECT_EQ(output, "ABC");
+
+  out_str = from_hex(ctx_ptr, "", 0, &out_len);
+  output = std::string(out_str, out_len);
+  EXPECT_EQ(output, "");
+
+  out_str = from_hex(ctx_ptr, "41", 2, &out_len);
+  output = std::string(out_str, out_len);
+  EXPECT_EQ(output, "A");
+
+  out_str = from_hex(ctx_ptr, "6d6D", 4, &out_len);
+  output = std::string(out_str, out_len);
+  EXPECT_EQ(output, "mm");
+
+  out_str = from_hex(ctx_ptr, "6f6d", 4, &out_len);
+  output = std::string(out_str, out_len);
+  EXPECT_EQ(output, "om");
+
+  out_str = from_hex(ctx_ptr, "4f4D", 4, &out_len);
+  output = std::string(out_str, out_len);
+  EXPECT_EQ(output, "OM");
+
+  out_str = from_hex(ctx_ptr, "T", 1, &out_len);
+  output = std::string(out_str, out_len);
+  EXPECT_EQ(output, "");
+  EXPECT_THAT(
+      ctx.get_error(),
+      ::testing::HasSubstr("Error parsing hex string, length was not a multiple of"));
+  ctx.Reset();
+
+  out_str = from_hex(ctx_ptr, "\\x41\\x42\\x43", 12, &out_len);
+  output = std::string(out_str, out_len);
+  EXPECT_EQ(output, "");
+  EXPECT_THAT(
+      ctx.get_error(),
+      ::testing::HasSubstr("Error parsing hex string, one or more bytes are not valid."));
+  ctx.Reset();
+}
+
 TEST(TestStringOps, TestBinaryString) {
   gandiva::ExecutionContext ctx;
   uint64_t ctx_ptr = reinterpret_cast<gdv_int64>(&ctx);
