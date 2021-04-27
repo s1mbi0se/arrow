@@ -779,6 +779,42 @@ TEST_F(TestProjector, TestModZero) {
   EXPECT_ARROW_ARRAY_EQUALS(exp_mod, outputs.at(0));
 }
 
+TEST_F(TestProjector, TestConcatFromHex) {
+  // schema for input fields
+  auto field0 = field("f0", arrow::utf8());
+  auto schema = arrow::schema({field0});
+
+  // output fields
+  auto field_from_hex = field("fromhex", arrow::binary());
+
+  // Build expression
+  auto from_hex_exp =
+      TreeExprBuilder::MakeExpression("from_hex", {field0}, field_from_hex);
+
+  std::shared_ptr<Projector> projector;
+  auto status = Projector::Make(schema, {from_hex_exp}, TestConfiguration(), &projector);
+  EXPECT_TRUE(status.ok()) << status.message();
+
+  // Create a row-batch with some sample data
+  int num_records = 6;
+  auto array0 = MakeArrowArrayUtf8({"414243", "", "41", "4f4D", "6f6d", "4f"},
+                                   {true, true, true, true, true, true});
+  // expected output
+  auto exp_from_hex = MakeArrowArrayBinary({"ABC", "", "A", "OM", "om", "O"},
+                                           {true, true, true, true, true, true});
+
+  // prepare input record batch
+  auto in_batch = arrow::RecordBatch::Make(schema, num_records, {array0});
+
+  // Evaluate expression
+  arrow::ArrayVector outputs;
+  status = projector->Evaluate(*in_batch, pool_, &outputs);
+  EXPECT_TRUE(status.ok()) << status.message();
+
+  // Validate results
+  EXPECT_ARROW_ARRAY_EQUALS(exp_from_hex, outputs.at(0));
+}
+
 TEST_F(TestProjector, TestConcat) {
   // schema for input fields
   auto field0 = field("f0", arrow::utf8());
