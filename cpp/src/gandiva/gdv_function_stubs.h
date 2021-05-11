@@ -170,4 +170,22 @@ float gdv_fn_castFLOAT4_varbinary(gdv_int64 context, const char* in, int32_t in_
 
 GANDIVA_EXPORT
 double gdv_fn_castFLOAT8_varbinary(gdv_int64 context, const char* in, int32_t in_len);
+
+GANDIVA_EXPORT
+int32_t gdv_fn_abs_int32(int64_t context, int32_t in);
+
+GANDIVA_EXPORT
+int64_t gdv_fn_abs_int64(int64_t context, int64_t in);
+
+GANDIVA_EXPORT
+uint32_t gdv_fn_abs_uint32(int64_t context, uint32_t in);
+
+GANDIVA_EXPORT
+uint64_t gdv_fn_abs_uint64(int64_t context, uint64_t in);
+
+GANDIVA_EXPORT
+float gdv_fn_abs_float32(int64_t context, float in);
+
+GANDIVA_EXPORT
+double gdv_fn_abs_float64(int64_t context, double in);
 }
