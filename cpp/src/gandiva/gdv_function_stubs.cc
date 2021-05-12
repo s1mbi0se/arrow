@@ -339,7 +339,7 @@ CAST_NUMERIC_FROM_STRING(double, arrow::DoubleType, FLOAT8)
 
 #undef CAST_NUMERIC_FROM_STRING
 
-#define GDV_FN_CAST_VARLEN_TYPE_FROM_INTEGER(IN_TYPE, CAST_NAME, ARROW_TYPE)      \
+#define GDV_FN_CAST_VARLEN_TYPE_FROM_TYPE(IN_TYPE, CAST_NAME, ARROW_TYPE)      \
   GANDIVA_EXPORT                                                                  \
   const char* gdv_fn_cast##CAST_NAME##_##IN_TYPE##_int64(                         \
       int64_t context, gdv_##IN_TYPE value, int64_t len, int32_t * out_len) {     \
@@ -411,10 +411,10 @@ CAST_NUMERIC_FROM_STRING(double, arrow::DoubleType, FLOAT8)
     return ret;                                                                   \
   }
 
-#define CAST_VARLEN_TYPE_FROM_NUMERIC(VARLEN_TYPE)                    \
-  GDV_FN_CAST_VARLEN_TYPE_FROM_INTEGER(int32, VARLEN_TYPE, Int32Type) \
-  GDV_FN_CAST_VARLEN_TYPE_FROM_INTEGER(int64, VARLEN_TYPE, Int64Type) \
-  GDV_FN_CAST_VARLEN_TYPE_FROM_INTEGER(date64, VARLEN_TYPE, Date64Type) \
+#define CAST_VARLEN_TYPE_FROM_NUMERIC(VARLEN_TYPE)                   \
+  GDV_FN_CAST_VARLEN_TYPE_FROM_TYPE(int32, VARLEN_TYPE, Int32Type)   \
+  GDV_FN_CAST_VARLEN_TYPE_FROM_TYPE(int64, VARLEN_TYPE, Int64Type)   \
+  GDV_FN_CAST_VARLEN_TYPE_FROM_TYPE(date64, VARLEN_TYPE, Date64Type) \
   GDV_FN_CAST_VARLEN_TYPE_FROM_REAL(float32, VARLEN_TYPE, FloatType)  \
   GDV_FN_CAST_VARLEN_TYPE_FROM_REAL(float64, VARLEN_TYPE, DoubleType)
 
@@ -422,7 +422,7 @@ CAST_VARLEN_TYPE_FROM_NUMERIC(VARCHAR)
 CAST_VARLEN_TYPE_FROM_NUMERIC(VARBINARY)
 
 #undef CAST_VARLEN_TYPE_FROM_NUMERIC
-#undef GDV_FN_CAST_VARLEN_TYPE_FROM_INTEGER
+#undef GDV_FN_CAST_VARLEN_TYPE_FROM_TYPE
 #undef GDV_FN_CAST_VARLEN_TYPE_FROM_REAL
 #undef GDV_FN_CAST_VARCHAR_INTEGER
 #undef GDV_FN_CAST_VARCHAR_REAL
