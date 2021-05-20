@@ -644,6 +644,11 @@ TEST(TestTime, TestExtractWeek) {
   }
 }
 
+TEST(TestTime, TestIsNullInterval) {
+  EXPECT_EQ(isnull_day_time_interval(150, true), false);
+  EXPECT_EQ(isnull_day_time_interval(150, false), true);
+}
+
 TEST(TestTime, TestMonthsBetween) {
   std::vector<std::string> testStrings = {
       "1995-03-02 00:00:00", "1995-02-02 00:00:00", "1.0",
