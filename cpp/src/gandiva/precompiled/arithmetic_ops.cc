@@ -133,6 +133,14 @@ NUMERIC_TYPES(VALIDITY_OP, isnumeric, +)
 
 #undef VALIDITY_OP
 
+#define IS_TRUE_OR_FALSE(NAME, OP, TYPE) \
+  FORCE_INLINE                           \
+  bool NAME##_##TYPE(gdv_##TYPE in) { return OP in; }
+
+IS_TRUE_OR_FALSE(istrue, +, boolean)
+IS_TRUE_OR_FALSE(isnotfalse, +, boolean)
+IS_TRUE_OR_FALSE(isfalse, !, boolean)
+
 #define NUMERIC_FUNCTION(INNER) \
   INNER(int8)                   \
   INNER(int16)                  \

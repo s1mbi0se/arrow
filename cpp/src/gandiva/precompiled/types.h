@@ -96,6 +96,10 @@ gdv_int64 timestampaddYear_int64_timestamp(gdv_int64, gdv_timestamp);
 
 gdv_boolean isnull_day_time_interval(gdv_day_time_interval in, gdv_boolean is_valid);
 
+gdv_boolean istrue_boolean(gdv_boolean in);
+gdv_boolean isnotfalse_boolean(gdv_boolean in);
+gdv_boolean isfalse_boolean(gdv_boolean in);
+
 gdv_int64 date_add_int32_timestamp(gdv_int32, gdv_timestamp);
 gdv_int64 add_int64_timestamp(gdv_int64, gdv_timestamp);
 gdv_int64 add_int32_timestamp(gdv_int32, gdv_timestamp);
