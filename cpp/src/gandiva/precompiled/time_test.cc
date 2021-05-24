@@ -644,6 +644,11 @@ TEST(TestTime, TestExtractWeek) {
   }
 }
 
+TEST(TestTime, TestIsNullInterval) {
+  EXPECT_EQ(isnull_day_time_interval(150, true), false);
+  EXPECT_EQ(isnull_day_time_interval(150, false), true);
+}
+
 TEST(TestTime, TestMonthsBetween) {
   std::vector<std::string> testStrings = {
       "1995-03-02 00:00:00", "1995-02-02 00:00:00", "1.0",
@@ -691,6 +696,31 @@ TEST(TestTime, castVarcharTimestamp) {
   ts = StringToTimestamp("2-5-1 00:00:04");
   out = castVARCHAR_timestamp_int64(context_ptr, ts, 24L, &out_len);
   EXPECT_EQ(std::string(out, out_len), "0002-05-01 00:00:04.000");
+}
+
+TEST(TestTime, castVarcharDate) {
+  ExecutionContext context;
+  auto context_ptr = reinterpret_cast<int64_t>(&context);
+  int32_t out_len;
+  int64_t date = StringToTimestamp("2000-05-01 00:00:00");
+  const char* out = castVARCHAR_date_int64(context_ptr, date, 10L, &out_len);
+  EXPECT_EQ(std::string(out, out_len), "2000-05-01");
+
+  out = castVARCHAR_date_int64(context_ptr, date, 4L, &out_len);
+  EXPECT_EQ(std::string(out, out_len), "2000");
+
+  out = castVARCHAR_date_int64(context_ptr, date, 0L, &out_len);
+  EXPECT_EQ(std::string(out, out_len), "");
+
+  out = castVARCHAR_date_int64(context_ptr, date, -1L, &out_len);
+  EXPECT_TRUE(context.has_error());
+  EXPECT_EQ(std::string(out, out_len), "");
+
+  context.Reset();
+
+  date = StringToTimestamp("2-5-1 00:00:00");
+  out = castVARCHAR_date_int64(context_ptr, date, 10L, &out_len);
+  EXPECT_EQ(std::string(out, out_len), "0002-05-01");
 }
 
 TEST(TestTime, TestCastTimestampToDate) {

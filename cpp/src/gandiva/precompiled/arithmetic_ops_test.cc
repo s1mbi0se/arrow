@@ -101,6 +101,15 @@ TEST(TestArithmeticOps, TestDiv) {
   context.Reset();
 }
 
+TEST(TestArithmeticOps, TestIsTrueFalse) {
+  EXPECT_EQ(istrue_boolean(true), true);
+  EXPECT_EQ(istrue_boolean(false), false);
+  EXPECT_EQ(isnotfalse_boolean(true), true);
+  EXPECT_EQ(isnotfalse_boolean(false), false);
+  EXPECT_EQ(isfalse_boolean(true), false);
+  EXPECT_EQ(isfalse_boolean(false), true);
+}
+
 TEST(TestArithmeticOps, TestBitwiseOps) {
   // bitwise AND
   EXPECT_EQ(bitwise_and_int32_int32(0x0147D, 0x17159), 0x01059);
