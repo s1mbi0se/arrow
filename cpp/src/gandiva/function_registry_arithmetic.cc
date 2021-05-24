@@ -87,6 +87,11 @@ std::vector<NativeFunction> GetArithmeticFunctionRegistry() {
       UNARY_SAFE_NULL_IF_NULL(bitwise_not, {}, int32, int32),
       UNARY_SAFE_NULL_IF_NULL(bitwise_not, {}, int64, int64),
 
+      // is true, is not false, is false
+      UNARY_SAFE_NULL_IF_NULL(istrue, {"is true"}, boolean, boolean),
+      UNARY_SAFE_NULL_IF_NULL(isnotfalse, {"is not false"}, boolean, boolean),
+      UNARY_SAFE_NULL_IF_NULL(isfalse, {"is false"}, boolean, boolean),
+
       // round functions
       UNARY_SAFE_NULL_IF_NULL(round, {}, float32, float32),
       UNARY_SAFE_NULL_IF_NULL(round, {}, float64, float64),
