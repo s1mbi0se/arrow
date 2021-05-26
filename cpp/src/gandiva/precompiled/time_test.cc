@@ -132,6 +132,44 @@ TEST(TestTime, TestCastTimestamp) {
   context.Reset();
 }
 
+TEST(TestTime, TestCastTimeUtf8) {
+  ExecutionContext context;
+  auto context_ptr = reinterpret_cast<int64_t>(&context);
+
+  EXPECT_EQ(castTIME_utf8(context_ptr, "9:45:30", 7), 35130000);
+  EXPECT_EQ(castTIME_utf8(context_ptr, "9:45:30.920", 11), 35130920);
+
+  EXPECT_EQ(castTIME_utf8(context_ptr, "9:45:30.1", 9),
+            castTIME_utf8(context_ptr, "9:45:30", 7) + 100);
+
+  EXPECT_EQ(castTIME_utf8(context_ptr, "9:45:30.10", 10),
+            castTIME_utf8(context_ptr, "9:45:30", 7) + 100);
+
+  EXPECT_EQ(castTIME_utf8(context_ptr, "9:45:30.100", 11),
+            castTIME_utf8(context_ptr, "9:45:30", 7) + 100);
+
+  // error cases
+  EXPECT_EQ(castTIME_utf8(context_ptr, "24:00:00", 8), 0);
+  EXPECT_EQ(context.get_error(), "Not a valid time value 24:00:00");
+  context.Reset();
+
+  EXPECT_EQ(castTIME_utf8(context_ptr, "00:60:00", 8), 0);
+  EXPECT_EQ(context.get_error(), "Not a valid time value 00:60:00");
+  context.Reset();
+
+  EXPECT_EQ(castTIME_utf8(context_ptr, "00:00:100", 9), 0);
+  EXPECT_EQ(context.get_error(), "Not a valid time value 00:00:100");
+  context.Reset();
+
+  EXPECT_EQ(castTIME_utf8(context_ptr, "00:00:00.0001", 13), 0);
+  EXPECT_EQ(context.get_error(), "Invalid millis for time value 00:00:00.0001");
+  context.Reset();
+
+  EXPECT_EQ(castTIME_utf8(context_ptr, "00:00:00.1000", 13), 0);
+  EXPECT_EQ(context.get_error(), "Invalid millis for time value 00:00:00.1000");
+  context.Reset();
+}
+
 #ifndef _WIN32
 
 // TODO(wesm): ARROW-4495. Need to address TZ database issues on Windows

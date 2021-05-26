@@ -85,6 +85,10 @@ std::vector<NativeFunction> GetDateTimeFunctionRegistry() {
       NativeFunction("castDATE", {"to_date"}, DataTypeVector{timestamp()}, date64(),
                      kResultNullIfNull, "castDATE_timestamp"),
 
+      NativeFunction("castTIME", {}, DataTypeVector{utf8()}, time32(), kResultNullIfNull,
+                     "castTIME_utf8",
+                     NativeFunction::kNeedsContext | NativeFunction::kCanReturnErrors),
+
       NativeFunction("castTIME", {}, DataTypeVector{timestamp()}, time32(),
                      kResultNullIfNull, "castTIME_timestamp"),
 
