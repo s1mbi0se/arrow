@@ -16,10 +16,10 @@
 // under the License.
 
 #include <gtest/gtest.h>
-#include <time.h>
 
-#include "../execution_context.h"
+#include "gandiva/execution_context.h"
 #include "gandiva/precompiled/testing.h"
+#include "gandiva/precompiled/time_constants.h"
 #include "gandiva/precompiled/types.h"
 
 namespace gandiva {
@@ -715,6 +715,28 @@ TEST(TestTime, TestCastTimestampToTime) {
   ts = StringToTimestamp("2015-09-16 23:59:59");
   expected_response = static_cast<int32_t>(ts - StringToTimestamp("2015-09-16 00:00:00"));
   out = castTIME_timestamp(ts);
+  EXPECT_EQ(expected_response, out);
+}
+
+TEST(TestTime, TestIntToTime) {
+  int32_t val = 1000;
+  int32_t expected_response = val;
+  auto out = castTIME_int32(val);
+  EXPECT_EQ(expected_response, out);
+
+  val = MILLIS_IN_DAY - 1;
+  expected_response = val;
+  out = castTIME_int32(val);
+  EXPECT_EQ(expected_response, out);
+
+  val = MILLIS_IN_DAY + 1;
+  expected_response = 1;
+  out = castTIME_int32(val);
+  EXPECT_EQ(expected_response, out);
+
+  val = -1;
+  expected_response = 0;
+  out = castTIME_int32(val);
   EXPECT_EQ(expected_response, out);
 }
 

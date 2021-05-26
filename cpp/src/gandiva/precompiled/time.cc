@@ -775,6 +775,17 @@ gdv_time32 castTIME_timestamp(gdv_timestamp timestamp_in_millis) {
   return static_cast<int32_t>(millis_since_midnight);
 }
 
+// Gets an arbitrary number and return the number of milliseconds since midnight
+int32_t castTIME_int32(int32_t int_val) {
+  if (int_val < 0) {
+    return 0;
+  }
+
+  auto millis_since_midnight = static_cast<int32_t>(int_val % MILLIS_IN_DAY);
+
+  return millis_since_midnight;
+}
+
 const char* castVARCHAR_timestamp_int64(gdv_int64 context, gdv_timestamp in,
                                         gdv_int64 length, gdv_int32* out_len) {
   gdv_int64 year = extractYear_timestamp(in);
