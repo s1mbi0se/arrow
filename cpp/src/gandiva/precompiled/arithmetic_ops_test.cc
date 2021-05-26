@@ -108,6 +108,8 @@ TEST(TestArithmeticOps, TestIsTrueFalse) {
   EXPECT_EQ(isnotfalse_boolean(false), false);
   EXPECT_EQ(isfalse_boolean(true), false);
   EXPECT_EQ(isfalse_boolean(false), true);
+  EXPECT_EQ(isnottrue_boolean(true), false);
+  EXPECT_EQ(isnottrue_boolean(false), true);
 }
 
 TEST(TestArithmeticOps, TestBitwiseOps) {

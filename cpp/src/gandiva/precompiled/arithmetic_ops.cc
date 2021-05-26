@@ -140,6 +140,7 @@ NUMERIC_TYPES(VALIDITY_OP, isnumeric, +)
 IS_TRUE_OR_FALSE(istrue, +, boolean)
 IS_TRUE_OR_FALSE(isnotfalse, +, boolean)
 IS_TRUE_OR_FALSE(isfalse, !, boolean)
+IS_TRUE_OR_FALSE(isnottrue, !, boolean)
 
 #define NUMERIC_FUNCTION(INNER) \
   INNER(int8)                   \
