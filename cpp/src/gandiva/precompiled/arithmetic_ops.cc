@@ -133,15 +133,6 @@ NUMERIC_TYPES(VALIDITY_OP, isnumeric, +)
 
 #undef VALIDITY_OP
 
-#define IS_TRUE_OR_FALSE(NAME, OP, TYPE) \
-  FORCE_INLINE                           \
-  bool NAME##_##TYPE(gdv_##TYPE in) { return OP in; }
-
-IS_TRUE_OR_FALSE(istrue, +, boolean)
-IS_TRUE_OR_FALSE(isnotfalse, +, boolean)
-IS_TRUE_OR_FALSE(isfalse, !, boolean)
-IS_TRUE_OR_FALSE(isnottrue, !, boolean)
-
 #define NUMERIC_FUNCTION(INNER) \
   INNER(int8)                   \
   INNER(int16)                  \
@@ -153,6 +144,20 @@ IS_TRUE_OR_FALSE(isnottrue, !, boolean)
   INNER(uint64)                 \
   INNER(float32)                \
   INNER(float64)
+
+#define IS_TRUE_OR_FALSE_BOOL(NAME, TYPE, OP) \
+  FORCE_INLINE                                \
+  gdv_##TYPE NAME##_boolean(gdv_##TYPE in) { return OP in; }
+
+IS_TRUE_OR_FALSE_BOOL(istrue, boolean, +)
+IS_TRUE_OR_FALSE_BOOL(isfalse, boolean, !)
+
+#define IS_TRUE_OR_FALSE_NUMERIC(NAME, TYPE, OP) \
+  FORCE_INLINE                                   \
+  gdv_boolean NAME##_##TYPE(gdv_##TYPE in) { return OP (in != 0 ? true : false); }
+
+NUMERIC_TYPES(IS_TRUE_OR_FALSE_NUMERIC, istrue, +)
+NUMERIC_TYPES(IS_TRUE_OR_FALSE_NUMERIC, isfalse, !)
 
 #define DATE_FUNCTION(INNER) \
   INNER(date32)              \
