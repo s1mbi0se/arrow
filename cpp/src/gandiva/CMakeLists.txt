@@ -85,6 +85,7 @@ set(SRC_FILES
     like_holder.cc
     literal_holder.cc
     projector.cc
+    projector_object_cache.cc
     regex_util.cc
     selection_vector.cc
     tree_expr_builder.cc
