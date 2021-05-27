@@ -70,6 +70,21 @@ class LruCache {
     }
   }
 
+  void insertObject(key_type& key, const value_type value) {
+    typename map_type::iterator i = map_.find(key);
+    if (i == map_.end()) {
+      // insert item into the cache, but first check if it is full
+      if (size() >= cache_capacity_) {
+        // cache is full, evict the least recently used item
+        evict();
+      }
+
+      // insert the new item
+      lru_list_.push_front(key);
+      map_[key] = std::make_pair(value, lru_list_.begin());
+    }
+  }
+
   arrow::util::optional<value_type> get(const key_type& key) {
     // lookup value in the cache
     typename map_type::iterator value_for_key = map_.find(key);
@@ -103,6 +118,12 @@ class LruCache {
   void clear() {
     map_.clear();
     lru_list_.clear();
+  }
+
+  std::string toString(){
+    auto lru_size = lru_list_.size();
+    std::string string = "LRU Cache list size: " + std::to_string(lru_size) + ".";
+    return string;
   }
 
  private:
