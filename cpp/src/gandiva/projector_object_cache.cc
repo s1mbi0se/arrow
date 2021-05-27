@@ -15,7 +15,7 @@ void ProjectorObjectCache::SetKey(std::shared_ptr<ProjectorCacheKey>& key){
   ARROW_LOG(INFO) << "[OBJ-CACHE-LOG]: Called SetKey()";
   auto key_log = key.get();
   ARROW_LOG(INFO) << key_log;
-  projector_key_ = std::move(key);
+  projector_key_ = key;
   auto projector_key_log = projector_key_.get();
   ARROW_LOG(INFO) << projector_key_log;
 

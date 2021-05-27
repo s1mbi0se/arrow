@@ -150,11 +150,13 @@ Status Projector::Make(SchemaPtr schema, const ExpressionVector& exprs,
   static std::shared_ptr<Cache<ProjectorCacheKey, std::shared_ptr<llvm::MemoryBuffer>>> shared_cache =
       std::move(cache_unique);
 
-  // Cache keys
+  // Cache key ptrs
   ProjectorCacheKey cache_key(schema, configuration, exprs, selection_vector_mode);
-
   std::unique_ptr<ProjectorCacheKey> projector_key = std::make_unique<ProjectorCacheKey>(cache_key);
   std::shared_ptr<ProjectorCacheKey> shared_projector_key = std::move(projector_key);
+
+  // LLVM ObjectCache flag;
+  bool llvm_flag = false;
 
   //ProjectorCacheKey cache_key(schema, configuration, exprs, selection_vector_mode);
 
@@ -170,24 +172,23 @@ Status Projector::Make(SchemaPtr schema, const ExpressionVector& exprs,
 
   if(prev_cached_obj != nullptr) {
     ARROW_LOG(INFO) << "[OBJ-CACHE-LOG]: Object code WAS been cached!";
-    //shared_cache->
-    ARROW_LOG(INFO) << shared_projector_key.get();
+    llvm_flag = true;
   } else {
     ARROW_LOG(INFO) << "[OBJ-CACHE-LOG]: Object code WAS NOT been cached!";
   }
 
-  ARROW_LOG(INFO) << "[OBJ-CACHE-LOG]: Before creating the object cache.";
+  //ARROW_LOG(INFO) << "[OBJ-CACHE-LOG]: Before creating the object cache.";
   //ProjectorObjectCache obj_cache(schema, exprs, selection_vector_mode, configuration);
-  ProjectorObjectCache obj_cache(shared_cache);
+  ProjectorObjectCache obj_cache(shared_cache, shared_projector_key);
   //obj_cache.SetCache(shared_cache);
-  obj_cache.SetKey(shared_projector_key);
-  ARROW_LOG(INFO) << "[OBJ-CACHE-LOG]: After creating the object cache.";
+  //obj_cache.SetKey(shared_projector_key);
+  //ARROW_LOG(INFO) << "[OBJ-CACHE-LOG]: After creating the object cache.";
 
   // Build LLVM generator, and generate code for the specified expressions
   std::unique_ptr<LLVMGenerator> llvm_gen;
-  ARROW_LOG(INFO) << "[OBJ-CACHE-LOG]: Before creating the engine.";
+  //ARROW_LOG(INFO) << "[OBJ-CACHE-LOG]: Before creating the engine.";
   ARROW_RETURN_NOT_OK(LLVMGenerator::Make(configuration, &llvm_gen));
-  ARROW_LOG(INFO) << "[OBJ-CACHE-LOG]: After creating the engine.";
+  //ARROW_LOG(INFO) << "[OBJ-CACHE-LOG]: After creating the engine.";
 
   // Run the validation on the expressions.
   // Return if any of the expression is invalid since
@@ -196,9 +197,9 @@ Status Projector::Make(SchemaPtr schema, const ExpressionVector& exprs,
   for (auto& expr : exprs) {
     ARROW_RETURN_NOT_OK(expr_validator.Validate(expr));
   }
-  ARROW_LOG(INFO) << "[OBJ-CACHE-LOG]: Before building the engine.";
+  //ARROW_LOG(INFO) << "[OBJ-CACHE-LOG]: Before building the engine.";
   ARROW_RETURN_NOT_OK(llvm_gen->Build(exprs, selection_vector_mode, obj_cache));
-  ARROW_LOG(INFO) << "[OBJ-CACHE-LOG]: After building the engine.";
+  //ARROW_LOG(INFO) << "[OBJ-CACHE-LOG]: After building the engine.";
   //ARROW_LOG(INFO) << "[OBJ-CACHE-LOG]: Verifying cache size.";
   // save the output field types. Used for validation at Evaluate() time.
   std::vector<FieldPtr> output_fields;
@@ -209,16 +210,6 @@ Status Projector::Make(SchemaPtr schema, const ExpressionVector& exprs,
 
   shared_cache = obj_cache.GetCache();
   std::shared_ptr<ProjectorCacheKey> obj_projector_key = obj_cache.GetKey();
-
-  //std::string projector_key_string = projector_key.get()->ToString();
-  //ARROW_LOG(INFO) << "[OBJ-CACHE-LOG]: Projector key" << projector_key_string;
-  //ARROW_LOG(INFO) << "[OBJ-CACHE-LOG]: Cached projector key" << obj_projector_key->ToString();
-
-  if (obj_projector_key == shared_projector_key) {
-    ARROW_LOG(INFO) << "[OBJ-CACHE-LOG]: Cached projector key EQUAL to generated cache key.";
-  } else {
-    ARROW_LOG(INFO) << "[OBJ-CACHE-LOG]: Cached projector key NOT EQUAL to generated cache key.";
-  }
 
   std::shared_ptr<llvm::MemoryBuffer> cached_obj;
   cached_obj = shared_cache->GetObjectCode(*obj_projector_key);
@@ -232,7 +223,7 @@ Status Projector::Make(SchemaPtr schema, const ExpressionVector& exprs,
   // Instantiate the projector with the completely built llvm generator
   *projector = std::shared_ptr<Projector>(
       new Projector(std::move(llvm_gen), schema, output_fields, configuration));
-  projector->get()->SetCacheKey(obj_projector_key);
+  projector->get()->SetCompiledFromCache(llvm_flag);
   //cache.PutModule(cache_key, *projector);
 
   return Status::OK();
@@ -406,12 +397,12 @@ Status Projector::ValidateArrayDataCapacity(const arrow::ArrayData& array_data,
 
 std::string Projector::DumpIR() { return llvm_generator_->DumpIR(); }
 
-void Projector::SetCacheKey(std::shared_ptr<ProjectorCacheKey>& key) {
-  cache_key_ = key;
+void Projector::SetCompiledFromCache(bool flag) {
+  compiled_from_cache_ = flag;
 }
 
-std::shared_ptr<ProjectorCacheKey> Projector::GetCacheKey() {
-  return cache_key_;
+bool Projector::GetCompiledFromCache() {
+  return compiled_from_cache_;
 }
 
 }  // namespace gandiva
