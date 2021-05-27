@@ -13,9 +13,31 @@ void ProjectorObjectCache::SetCache(std::shared_ptr<Cache<ProjectorCacheKey, std
 
 void ProjectorObjectCache::SetKey(std::unique_ptr<ProjectorCacheKey>& key){
   ARROW_LOG(INFO) << "[OBJ-CACHE-LOG]: Called SetKey()";
+  auto key_log = key.get();
+  ARROW_LOG(INFO) << key_log;
   projector_key_ = std::move(key);
-  auto key_log = *projector_key_;
-  ARROW_LOG(INFO) << key_log.ToString();
+  auto projector_key_log = projector_key_.get();
+  ARROW_LOG(INFO) << projector_key_log;
+
+  if(key_log == projector_key_log) {
+    ARROW_LOG(INFO) << "[SET KEYS] BOTH KEYS ARE EQUALS";
+  }
+}
+
+std::shared_ptr<Cache<ProjectorCacheKey, std::shared_ptr<llvm::MemoryBuffer>>> ProjectorObjectCache::GetCache(){
+  return std::move(projector_cache_);
+}
+
+std::unique_ptr<ProjectorCacheKey> ProjectorObjectCache::GetKey(){
+  auto projector_key_log = projector_key_.get();
+  ARROW_LOG(INFO) << projector_key_log;
+  std::unique_ptr<ProjectorCacheKey> key = std::move(projector_key_);
+  auto key_log = key.get();
+  ARROW_LOG(INFO) << key_log;
+  if(key_log == projector_key_log) {
+    ARROW_LOG(INFO) << "[GET KEYS] BOTH KEYS ARE EQUALS";
+  }
+  return key;
 }
 
 }
