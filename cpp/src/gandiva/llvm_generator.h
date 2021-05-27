@@ -36,7 +36,6 @@
 #include "gandiva/selection_vector.h"
 #include "gandiva/value_validity_pair.h"
 #include "gandiva/visibility.h"
-#include "gandiva/base_object_cache.h"
 #include "gandiva//projector_object_cache.h"
 
 namespace gandiva {
