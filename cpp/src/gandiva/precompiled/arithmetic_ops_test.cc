@@ -104,10 +104,24 @@ TEST(TestArithmeticOps, TestDiv) {
 TEST(TestArithmeticOps, TestIsTrueFalse) {
   EXPECT_EQ(istrue_boolean(true), true);
   EXPECT_EQ(istrue_boolean(false), false);
-  EXPECT_EQ(isnotfalse_boolean(true), true);
-  EXPECT_EQ(isnotfalse_boolean(false), false);
   EXPECT_EQ(isfalse_boolean(true), false);
   EXPECT_EQ(isfalse_boolean(false), true);
+  EXPECT_EQ(istrue_int32(10), true);
+  EXPECT_EQ(istrue_int32(0), false);
+  EXPECT_EQ(isfalse_int32(10), false);
+  EXPECT_EQ(isfalse_int32(0), true);
+  EXPECT_EQ(istrue_int64(10), true);
+  EXPECT_EQ(istrue_int64(0), false);
+  EXPECT_EQ(isfalse_int64(10), false);
+  EXPECT_EQ(isfalse_int64(0), true);
+  EXPECT_EQ(istrue_uint32(10), true);
+  EXPECT_EQ(istrue_uint32(0), false);
+  EXPECT_EQ(isfalse_uint32(10), false);
+  EXPECT_EQ(isfalse_uint32(0), true);
+  EXPECT_EQ(istrue_uint64(10), true);
+  EXPECT_EQ(istrue_uint64(0), false);
+  EXPECT_EQ(isfalse_uint64(10), false);
+  EXPECT_EQ(isfalse_uint64(0), true);
 }
 
 TEST(TestArithmeticOps, TestBitwiseOps) {
