@@ -29,6 +29,7 @@
 #include "gandiva/llvm_includes.h"
 #include "gandiva/llvm_types.h"
 #include "gandiva/visibility.h"
+#include "gandiva/projector_object_cache.h"
 
 namespace gandiva {
 
@@ -53,6 +54,9 @@ class GANDIVA_EXPORT Engine {
     DCHECK(!module_finalized_);
     functions_to_compile_.push_back(fname);
   }
+
+  /// Set ProjectorObjectCache.
+  Status SetProjectorObjectCache(ProjectorObjectCache& object_cache);
 
   /// Optimise and compile the module.
   Status FinalizeModule();

@@ -167,7 +167,6 @@ Status Engine::Make(const std::shared_ptr<Configuration>& conf,
     return Status::CodeGenError("Could not instantiate llvm::ExecutionEngine: ",
                                 builder_error);
   }
-
   std::unique_ptr<Engine> engine{
       new Engine(conf, std::move(ctx), std::move(exec_engine), module_ptr)};
   ARROW_RETURN_NOT_OK(engine->Init());
@@ -272,6 +271,18 @@ Status Engine::RemoveUnusedFunctions() {
   return Status::OK();
 }
 
+// Set object cache
+Status Engine::SetProjectorObjectCache(ProjectorObjectCache& object_cache){
+  ARROW_LOG(INFO) << "[OBJ-CACHE-LOG]: Entered the SetProjectorObjectCache().";
+  execution_engine_->setObjectCache(&object_cache);
+  if (execution_engine_->hasError()){
+    return Status::ExecutionError("[OBJ-CACHE-LOG]: Can not set Projector Object cache");
+  } else {
+    ARROW_LOG(INFO) << "[OBJ-CACHE-LOG]: Exited with success the SetProjectorObjectCache().";
+    return Status::OK();
+  }
+}
+
 // Optimise and compile the module.
 Status Engine::FinalizeModule() {
   ARROW_RETURN_NOT_OK(RemoveUnusedFunctions());
@@ -303,12 +314,19 @@ Status Engine::FinalizeModule() {
 
   ARROW_RETURN_IF(llvm::verifyModule(*module_, &llvm::errs()),
                   Status::CodeGenError("Module verification failed after optimizer"));
-
+  ARROW_LOG(INFO) << "[OBJ-CACHE-LOG]: Checkpoint before the finalizeObject().";
   // do the compilation
-  execution_engine_->finalizeObject();
-  module_finalized_ = true;
+  if(execution_engine_->hasError()) {
+    //execution_engine_->finalizeObject();
+    ARROW_LOG(INFO) << "[OBJ-CACHE-LOG][ERROR]: " << execution_engine_->getErrorMessage();
+    module_finalized_ = false;
+    return Status::OK();
+  } else {
+    execution_engine_->finalizeObject();
+    module_finalized_ = true;
+    return Status::OK();
+  }
 
-  return Status::OK();
 }
 
 void* Engine::CompiledFunction(llvm::Function* irFunction) {
