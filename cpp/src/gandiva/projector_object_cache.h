@@ -47,12 +47,12 @@ class ProjectorObjectCache : public llvm::ObjectCache {
   };
 
   void SetCache(std::shared_ptr<Cache<ProjectorCacheKey, std::shared_ptr<llvm::MemoryBuffer>>>&);
-  void SetKey(std::unique_ptr<ProjectorCacheKey>&);
+  void SetKey(std::shared_ptr<ProjectorCacheKey>&);
 
   std::shared_ptr<Cache<ProjectorCacheKey, std::shared_ptr<llvm::MemoryBuffer>>> GetCache();
-  std::unique_ptr<ProjectorCacheKey> GetKey();
+  std::shared_ptr<ProjectorCacheKey> GetKey();
  private:
-  std::unique_ptr<ProjectorCacheKey> projector_key_;
+  std::shared_ptr<ProjectorCacheKey> projector_key_;
   static std::shared_ptr<Cache<ProjectorCacheKey, std::shared_ptr<llvm::MemoryBuffer>>> projector_cache_;
 };
 }  // namespace gandiva
