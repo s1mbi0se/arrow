@@ -64,8 +64,9 @@ TEST_F(TestProjector, TestProjectCache) {
 
   std::shared_ptr<Projector> projector;
   auto status = Projector::Make(schema, {sum_expr, sub_expr}, configuration, &projector);
-  std::shared_ptr<ProjectorCacheKey> projector_key;
-  projector_key = projector->GetCacheKey();
+  std::shared_ptr<ProjectorCacheKey> projector_key_ptr;
+  projector_key_ptr = projector->GetCacheKey();
+  ProjectorCacheKey* projector_key = projector_key_ptr.get();
 
   ASSERT_OK(status);
 
@@ -74,8 +75,9 @@ TEST_F(TestProjector, TestProjectCache) {
   std::shared_ptr<Projector> cached_projector;
   status = Projector::Make(schema_same, {sum_expr, sub_expr}, configuration,
                            &cached_projector);
-  std::shared_ptr<ProjectorCacheKey> cached_projector_key;
-  cached_projector_key = projector->GetCacheKey();
+  std::shared_ptr<ProjectorCacheKey> cached_projector_key_ptr;
+  cached_projector_key_ptr = cached_projector->GetCacheKey();
+  ProjectorCacheKey* cached_projector_key = cached_projector_key_ptr.get();
 
   ASSERT_OK(status);
   EXPECT_EQ(cached_projector_key, projector_key);
