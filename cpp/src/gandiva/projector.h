@@ -145,8 +145,8 @@ class GANDIVA_EXPORT Projector {
 
   std::string DumpIR();
 
-  void SetCacheKey(std::shared_ptr<ProjectorCacheKey>& key);
-  std::shared_ptr<ProjectorCacheKey> GetCacheKey();
+  void SetCompiledFromCache(bool flag);
+  bool GetCompiledFromCache();
 
  private:
   Projector(std::unique_ptr<LLVMGenerator> llvm_generator, SchemaPtr schema,
@@ -167,7 +167,8 @@ class GANDIVA_EXPORT Projector {
   SchemaPtr schema_;
   FieldVector output_fields_;
   std::shared_ptr<Configuration> configuration_;
-  std::shared_ptr<ProjectorCacheKey> cache_key_;
+  bool compiled_from_cache_;
+  //std::shared_ptr<ProjectorCacheKey> cache_key_;
 };
 
 }  // namespace gandiva
