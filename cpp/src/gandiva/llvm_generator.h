@@ -23,7 +23,6 @@
 #include <vector>
 
 #include "arrow/util/macros.h"
-
 #include "gandiva/annotator.h"
 #include "gandiva/compiled_expr.h"
 #include "gandiva/configuration.h"
@@ -37,6 +36,8 @@
 #include "gandiva/selection_vector.h"
 #include "gandiva/value_validity_pair.h"
 #include "gandiva/visibility.h"
+#include "gandiva/base_object_cache.h"
+#include "gandiva//projector_object_cache.h"
 
 namespace gandiva {
 
@@ -45,6 +46,7 @@ class FunctionHolder;
 /// Builds an LLVM module and generates code for the specified set of expressions.
 class GANDIVA_EXPORT LLVMGenerator {
  public:
+
   /// \brief Factory method to initialize the generator.
   static Status Make(std::shared_ptr<Configuration> config,
                      std::unique_ptr<LLVMGenerator>* llvm_generator);
@@ -53,9 +55,15 @@ class GANDIVA_EXPORT LLVMGenerator {
   /// element in the vector represents an expression tree
   Status Build(const ExpressionVector& exprs, SelectionVector::Mode mode);
 
+
+  Status Build(const ExpressionVector& exprs, SelectionVector::Mode mode,
+               ProjectorObjectCache& obj_cache);
+
+
   /// \brief Build the code for the expression trees for default mode. Each
   /// element in the vector represents an expression tree
   Status Build(const ExpressionVector& exprs) {
+
     return Build(exprs, SelectionVector::Mode::MODE_NONE);
   }
 
@@ -248,6 +256,7 @@ class GANDIVA_EXPORT LLVMGenerator {
   // used for debug
   bool enable_ir_traces_;
   std::vector<std::string> trace_strings_;
+
 };
 
 }  // namespace gandiva
