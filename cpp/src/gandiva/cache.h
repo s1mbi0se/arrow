@@ -18,6 +18,7 @@
 #pragma once
 
 #include <cstdlib>
+#include <memory>
 #include <mutex>
 
 #include "gandiva/lru_cache.h"
@@ -33,10 +34,27 @@ void LogCacheSize(size_t capacity);
 
 template <class KeyType, typename ValueType>
 class Cache {
+  using MutexType = std::mutex;
+  using ReadLock = std::unique_lock<MutexType>;
+  using WriteLock = std::unique_lock<MutexType>;
+
  public:
   explicit Cache(size_t capacity) : cache_(capacity) { LogCacheSize(capacity); }
 
   Cache() : Cache(GetCapacity()) {}
+
+  // Move constructor
+  /*
+  Cache(Cache&& a) {
+    WriteLock rhs_lk(a.mtx_);
+    cache_ = std::move(a.cache_);
+  }
+
+  // Copy constructor
+  Cache(const Cache& a){
+    ReadLock  rhs_lk(a.mtx_);
+    cache_ = a.cache_;
+  }*/
 
   ValueType GetModule(KeyType cache_key) {
     arrow::util::optional<ValueType> result;
@@ -46,11 +64,62 @@ class Cache {
     return result != arrow::util::nullopt ? *result : nullptr;
   }
 
+  ValueType GetObjectCode(KeyType cache_key) {
+    arrow::util::optional<ValueType> result;
+    mtx_.lock();
+    result = cache_.get(cache_key);
+    mtx_.unlock();
+    if (result != arrow::util::nullopt) {
+      return *result;
+    } else {
+      return nullptr;
+    }
+  }
+
   void PutModule(KeyType cache_key, ValueType module) {
     mtx_.lock();
     cache_.insert(cache_key, module);
     mtx_.unlock();
   }
+
+  void PutObjectCode(KeyType& cache_key, ValueType objectCode) {
+    mtx_.lock();
+    cache_.insertObject(cache_key, objectCode);
+    mtx_.unlock();
+  }
+
+  std::string toString() {
+    return cache_.toString();
+  }
+
+  // Move operator
+  /*
+  Cache& operator=(Cache&& a)
+  {
+    if (this != &a)
+    {
+      WriteLock lhs_lk(mtx_, std::defer_lock);
+      WriteLock rhs_lk(a.mtx_, std::defer_lock);
+      std::lock(lhs_lk, rhs_lk);
+      cache_ = std::move(a.cache_);
+    }
+    return *this;
+  }
+
+  // Copy operator
+  Cache& operator=(const Cache& a)
+  {
+    if (this != &a)
+    {
+      WriteLock lhs_lk(mtx_, std::defer_lock);
+      ReadLock  rhs_lk(a.mtx_, std::defer_lock);
+      std::lock(lhs_lk, rhs_lk);
+      cache_ = a.cache_;
+    }
+    return *this;
+  }*/
+
+
 
  private:
   LruCache<KeyType, ValueType> cache_;
