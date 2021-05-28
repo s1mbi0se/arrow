@@ -104,11 +104,38 @@ Status Filter::Make(SchemaPtr schema, ConditionPtr condition,
 
   static Cache<FilterCacheKey, std::shared_ptr<Filter>> cache;
   FilterCacheKey cache_key(schema, configuration, *(condition.get()));
-  auto cachedFilter = cache.GetModule(cache_key);
+  /*auto cachedFilter = cache.GetModule(cache_key);
   if (cachedFilter != nullptr) {
     *filter = cachedFilter;
     return Status::OK();
+  }*/
+
+  // Cache ptrs
+  static std::unique_ptr<Cache<FilterCacheKey, std::shared_ptr<llvm::MemoryBuffer>>> cache_unique =
+      std::make_unique<Cache<FilterCacheKey, std::shared_ptr<llvm::MemoryBuffer>>>();
+  static std::shared_ptr<Cache<FilterCacheKey, std::shared_ptr<llvm::MemoryBuffer>>> shared_cache =
+      std::move(cache_unique);
+
+  // FilterCacheKey ptrs
+  //FilterCacheKey cache_key(schema, configuration, *(condition.get()));
+  std::unique_ptr<FilterCacheKey> projector_key = std::make_unique<FilterCacheKey>(cache_key);
+  std::shared_ptr<FilterCacheKey> shared_projector_key = std::move(projector_key);
+
+  // LLVM ObjectCache flag;
+  bool llvm_flag = false;
+
+  std::shared_ptr<llvm::MemoryBuffer> prev_cached_obj;
+  prev_cached_obj = shared_cache->GetObjectCode(*shared_projector_key);
+
+  // Verify if previous filter objec code was cached
+  if(prev_cached_obj != nullptr) {
+    ARROW_LOG(INFO) << "[OBJ-CACHE-LOG]: Object code WAS already cached!";
+    llvm_flag = true;
+  } else {
+    ARROW_LOG(INFO) << "[OBJ-CACHE-LOG]: Object code WAS NOT already cached!";
   }
+
+  BaseObjectCache<FilterCacheKey> obj_cache(shared_cache, shared_projector_key);
 
   // Build LLVM generator, and generate code for the specified expression
   std::unique_ptr<LLVMGenerator> llvm_gen;
@@ -118,11 +145,13 @@ Status Filter::Make(SchemaPtr schema, ConditionPtr condition,
   // Return if the expression is invalid since we will not be able to process further.
   ExprValidator expr_validator(llvm_gen->types(), schema);
   ARROW_RETURN_NOT_OK(expr_validator.Validate(condition));
-  ARROW_RETURN_NOT_OK(llvm_gen->Build({condition}, SelectionVector::Mode::MODE_NONE));
+  //ARROW_RETURN_NOT_OK(llvm_gen->Build({condition}, SelectionVector::Mode::MODE_NONE)); -> old llvm build
+  ARROW_RETURN_NOT_OK(llvm_gen->Build({condition}, SelectionVector::Mode::MODE_NONE, obj_cache));
 
   // Instantiate the filter with the completely built llvm generator
   *filter = std::make_shared<Filter>(std::move(llvm_gen), schema, configuration);
-  cache.PutModule(cache_key, *filter);
+  filter->get()->SetCompiledFromCache(llvm_flag);
+  //cache.PutModule(cache_key, *filter);
 
   return Status::OK();
 }
@@ -159,5 +188,13 @@ Status Filter::Evaluate(const arrow::RecordBatch& batch,
 }
 
 std::string Filter::DumpIR() { return llvm_generator_->DumpIR(); }
+
+void Filter::SetCompiledFromCache(bool flag) {
+  compiled_from_cache_ = flag;
+}
+
+bool Filter::GetCompiledFromCache() {
+  return compiled_from_cache_;
+}
 
 }  // namespace gandiva
