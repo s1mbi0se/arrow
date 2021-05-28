@@ -22,14 +22,13 @@
 #include <string>
 #include <vector>
 
-#include "arrow/util/macros.h"
-
 #include "arrow/util/logging.h"
+#include "arrow/util/macros.h"
+#include "gandiva/base_object_cache.h"
 #include "gandiva/configuration.h"
 #include "gandiva/llvm_includes.h"
 #include "gandiva/llvm_types.h"
 #include "gandiva/visibility.h"
-#include "gandiva/projector_object_cache.h"
 
 namespace gandiva {
 
@@ -55,8 +54,18 @@ class GANDIVA_EXPORT Engine {
     functions_to_compile_.push_back(fname);
   }
 
-  /// Set ProjectorObjectCache.
-  Status SetProjectorObjectCache(ProjectorObjectCache& object_cache);
+  /// Set BaseObjectCache.
+  template<class KeyType>
+  Status SetLLVMObjectCache(BaseObjectCache<KeyType>& object_cache){
+    ARROW_LOG(INFO) << "[OBJ-CACHE-LOG]: Entered the SetLLVMObjectCache().";
+    execution_engine_->setObjectCache(&object_cache);
+    if (execution_engine_->hasError()){
+      return Status::ExecutionError("[OBJ-CACHE-LOG]: Can not set Projector Object cache");
+    } else {
+      ARROW_LOG(INFO) << "[OBJ-CACHE-LOG]: Exited with success the SetLLVMObjectCache().";
+      return Status::OK();
+    }
+  }
 
   /// Optimise and compile the module.
   Status FinalizeModule();
