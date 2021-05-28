@@ -170,6 +170,17 @@ NUMERIC_TYPES(IS_TRUE_OR_FALSE_NUMERIC, isfalse, !)
   DATE_FUNCTION(INNER)                    \
   INNER(boolean)
 
+#define NVL(TYPE)                                                                   \
+  FORCE_INLINE                                                                      \
+  gdv_##TYPE nvl_##TYPE##_##TYPE(gdv_##TYPE in, gdv_boolean is_valid_in,            \
+                                 gdv_##TYPE replace, gdv_boolean is_valid_value) {  \
+    return (is_valid_in ? in : replace);                                            \
+  }
+
+NUMERIC_BOOL_DATE_FUNCTION(NVL)
+
+#undef VALIDITY_OP
+
 FORCE_INLINE
 gdv_boolean not_boolean(gdv_boolean in) { return !in; }
 
