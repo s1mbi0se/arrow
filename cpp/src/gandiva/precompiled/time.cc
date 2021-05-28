@@ -816,6 +816,7 @@ const char* castVARCHAR_timestamp_int64(gdv_int64 context, gdv_timestamp in,
     return !is_valid;                                        \
   }
 IS_NULL(day_time_interval)
+IS_NULL(month_interval)
 
 FORCE_INLINE
 gdv_int64 extractDay_daytimeinterval(gdv_day_time_interval in) {

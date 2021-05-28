@@ -118,17 +118,19 @@ TEST_F(TestBooleanExpr, IsTrueFalse) {
   auto field_result_1 = field("is_true", boolean());
   auto field_result_2 = field("is_not_false", boolean());
   auto field_result_3 = field("is_false", boolean());
+  auto field_result_4 = field("is_not_true", boolean());
 
   // build expressions.
   auto is_true = TreeExprBuilder::MakeExpression("istrue", {field_a}, field_result_1);
   auto is_not_false =
       TreeExprBuilder::MakeExpression("isnotfalse", {field_a}, field_result_2);
-  auto is_false =
-      TreeExprBuilder::MakeExpression("isfalse", {field_a}, field_result_3);
+  auto is_false = TreeExprBuilder::MakeExpression("isfalse", {field_a}, field_result_3);
+  auto is_not_true =
+      TreeExprBuilder::MakeExpression("isnottrue", {field_a}, field_result_4);
 
   // Build a projector for the expressions.
   std::shared_ptr<Projector> projector;
-  auto status = Projector::Make(schema, {is_true, is_not_false, is_false},
+  auto status = Projector::Make(schema, {is_true, is_not_false, is_false, is_not_true},
                                 TestConfiguration(), &projector);
   EXPECT_TRUE(status.ok());
 
@@ -137,6 +139,7 @@ TEST_F(TestBooleanExpr, IsTrueFalse) {
   auto expa = MakeArrowArrayBool({true, false, false, true}, {true, true, true, true});
   auto expb = MakeArrowArrayBool({true, false, false, true}, {true, true, true, true});
   auto expc = MakeArrowArrayBool({false, true, true, false}, {true, true, true, true});
+  auto expd = MakeArrowArrayBool({false, true, true, false}, {true, true, true, true});
   auto in_batch = arrow::RecordBatch::Make(schema, num_records, {in_a});
 
   arrow::ArrayVector outputs;
@@ -145,6 +148,7 @@ TEST_F(TestBooleanExpr, IsTrueFalse) {
   EXPECT_ARROW_ARRAY_EQUALS(expa, outputs.at(0));
   EXPECT_ARROW_ARRAY_EQUALS(expb, outputs.at(1));
   EXPECT_ARROW_ARRAY_EQUALS(expc, outputs.at(2));
+  EXPECT_ARROW_ARRAY_EQUALS(expc, outputs.at(3));
 }
 
 TEST_F(TestBooleanExpr, SimpleOr) {
