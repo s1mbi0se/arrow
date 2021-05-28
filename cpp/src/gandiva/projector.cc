@@ -24,11 +24,10 @@
 
 #include "arrow/util/hash_util.h"
 #include "arrow/util/logging.h"
-
+#include "gandiva/base_object_cache.h"
 #include "gandiva/cache.h"
 #include "gandiva/expr_validator.h"
 #include "gandiva/llvm_generator.h"
-#include "gandiva/projector_object_cache.h"
 
 namespace gandiva {
 
@@ -178,8 +177,8 @@ Status Projector::Make(SchemaPtr schema, const ExpressionVector& exprs,
   }
 
   //ARROW_LOG(INFO) << "[OBJ-CACHE-LOG]: Before creating the object cache.";
-  //ProjectorObjectCache obj_cache(schema, exprs, selection_vector_mode, configuration);
-  ProjectorObjectCache obj_cache(shared_cache, shared_projector_key);
+  //BaseObjectCache obj_cache(schema, exprs, selection_vector_mode, configuration);
+  BaseObjectCache<ProjectorCacheKey> obj_cache(shared_cache, shared_projector_key);
   //obj_cache.SetCache(shared_cache);
   //obj_cache.SetKey(shared_projector_key);
   //ARROW_LOG(INFO) << "[OBJ-CACHE-LOG]: After creating the object cache.";

@@ -24,13 +24,13 @@
 #include <utility>
 #include <vector>
 
+#include "gandiva/base_object_cache.h"
 #include "gandiva/bitmap_accumulator.h"
 #include "gandiva/decimal_ir.h"
 #include "gandiva/dex.h"
 #include "gandiva/expr_decomposer.h"
 #include "gandiva/expression.h"
 #include "gandiva/lvalue.h"
-#include "gandiva/projector_object_cache.h"
 
 namespace gandiva {
 
@@ -89,28 +89,6 @@ Status LLVMGenerator::Build(const ExpressionVector& exprs, SelectionVector::Mode
 
   return Status::OK();
 }
-Status LLVMGenerator::Build(const ExpressionVector& exprs, SelectionVector::Mode mode, ProjectorObjectCache& obj_cache){
-  selection_vector_mode_ = mode;
-
-  for (auto& expr : exprs) {
-    auto output = annotator_.AddOutputFieldDescriptor(expr->result());
-    ARROW_RETURN_NOT_OK(Add(expr, output));
-  }
-
-  ARROW_RETURN_NOT_OK(engine_->SetProjectorObjectCache(obj_cache));
-
-  // Compile and inject into the process' memory the generated function.
-  ARROW_RETURN_NOT_OK(engine_->FinalizeModule());
-
-  // setup the jit functions for each expression.
-  for (auto& compiled_expr : compiled_exprs_) {
-    auto ir_fn = compiled_expr->GetIRFunction(mode);
-    auto jit_fn = reinterpret_cast<EvalFunc>(engine_->CompiledFunction(ir_fn));
-    compiled_expr->SetJITFunction(selection_vector_mode_, jit_fn);
-  }
-
-  return Status::OK();
-};
 
 /// Execute the compiled module against the provided vectors.
 Status LLVMGenerator::Execute(const arrow::RecordBatch& record_batch,

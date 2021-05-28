@@ -271,18 +271,6 @@ Status Engine::RemoveUnusedFunctions() {
   return Status::OK();
 }
 
-// Set object cache
-Status Engine::SetProjectorObjectCache(ProjectorObjectCache& object_cache){
-  ARROW_LOG(INFO) << "[OBJ-CACHE-LOG]: Entered the SetProjectorObjectCache().";
-  execution_engine_->setObjectCache(&object_cache);
-  if (execution_engine_->hasError()){
-    return Status::ExecutionError("[OBJ-CACHE-LOG]: Can not set Projector Object cache");
-  } else {
-    ARROW_LOG(INFO) << "[OBJ-CACHE-LOG]: Exited with success the SetProjectorObjectCache().";
-    return Status::OK();
-  }
-}
-
 // Optimise and compile the module.
 Status Engine::FinalizeModule() {
   ARROW_RETURN_NOT_OK(RemoveUnusedFunctions());
