@@ -169,25 +169,19 @@ Status Projector::Make(SchemaPtr schema, const ExpressionVector& exprs,
   std::shared_ptr<llvm::MemoryBuffer> prev_cached_obj;
   prev_cached_obj = shared_cache->GetObjectCode(*shared_projector_key);
 
+  // Verify if previous filter objec code was cached
   if(prev_cached_obj != nullptr) {
-    ARROW_LOG(INFO) << "[OBJ-CACHE-LOG]: Object code WAS been cached!";
+    ARROW_LOG(INFO) << "[OBJ-CACHE-LOG]: Object code WAS already cached!";
     llvm_flag = true;
   } else {
-    ARROW_LOG(INFO) << "[OBJ-CACHE-LOG]: Object code WAS NOT been cached!";
+    ARROW_LOG(INFO) << "[OBJ-CACHE-LOG]: Object code WAS NOT already cached!";
   }
 
-  //ARROW_LOG(INFO) << "[OBJ-CACHE-LOG]: Before creating the object cache.";
-  //BaseObjectCache obj_cache(schema, exprs, selection_vector_mode, configuration);
   BaseObjectCache<ProjectorCacheKey> obj_cache(shared_cache, shared_projector_key);
-  //obj_cache.SetCache(shared_cache);
-  //obj_cache.SetKey(shared_projector_key);
-  //ARROW_LOG(INFO) << "[OBJ-CACHE-LOG]: After creating the object cache.";
 
   // Build LLVM generator, and generate code for the specified expressions
   std::unique_ptr<LLVMGenerator> llvm_gen;
-  //ARROW_LOG(INFO) << "[OBJ-CACHE-LOG]: Before creating the engine.";
   ARROW_RETURN_NOT_OK(LLVMGenerator::Make(configuration, &llvm_gen));
-  //ARROW_LOG(INFO) << "[OBJ-CACHE-LOG]: After creating the engine.";
 
   // Run the validation on the expressions.
   // Return if any of the expression is invalid since
@@ -196,10 +190,9 @@ Status Projector::Make(SchemaPtr schema, const ExpressionVector& exprs,
   for (auto& expr : exprs) {
     ARROW_RETURN_NOT_OK(expr_validator.Validate(expr));
   }
-  //ARROW_LOG(INFO) << "[OBJ-CACHE-LOG]: Before building the engine.";
+  //ARROW_RETURN_NOT_OK(llvm_gen->Build(exprs, selection_vector_mode)); -> old llvm build
   ARROW_RETURN_NOT_OK(llvm_gen->Build(exprs, selection_vector_mode, obj_cache));
-  //ARROW_LOG(INFO) << "[OBJ-CACHE-LOG]: After building the engine.";
-  //ARROW_LOG(INFO) << "[OBJ-CACHE-LOG]: Verifying cache size.";
+
   // save the output field types. Used for validation at Evaluate() time.
   std::vector<FieldPtr> output_fields;
   output_fields.reserve(exprs.size());
