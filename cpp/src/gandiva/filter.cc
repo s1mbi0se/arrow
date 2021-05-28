@@ -102,8 +102,8 @@ Status Filter::Make(SchemaPtr schema, ConditionPtr condition,
   ARROW_RETURN_IF(configuration == nullptr,
                   Status::Invalid("Configuration cannot be null"));
 
-  static Cache<FilterCacheKey, std::shared_ptr<Filter>> cache;
-  FilterCacheKey cache_key(schema, configuration, *(condition.get()));
+  //static Cache<FilterCacheKey, std::shared_ptr<Filter>> cache;
+  //FilterCacheKey cache_key(schema, configuration, *(condition.get()));
   /*auto cachedFilter = cache.GetModule(cache_key);
   if (cachedFilter != nullptr) {
     *filter = cachedFilter;
@@ -117,7 +117,7 @@ Status Filter::Make(SchemaPtr schema, ConditionPtr condition,
       std::move(cache_unique);
 
   // FilterCacheKey ptrs
-  //FilterCacheKey cache_key(schema, configuration, *(condition.get()));
+  FilterCacheKey cache_key(schema, configuration, *(condition.get()));
   std::unique_ptr<FilterCacheKey> projector_key = std::make_unique<FilterCacheKey>(cache_key);
   std::shared_ptr<FilterCacheKey> shared_projector_key = std::move(projector_key);
 
