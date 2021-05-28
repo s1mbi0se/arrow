@@ -84,6 +84,17 @@ std::vector<NativeFunction> GetMathOpsFunctionRegistry() {
       BINARY_GENERIC_SAFE_NULL_IF_NULL(truncate, {"trunc"}, decimal128, int32,
                                        decimal128),
 
+      NativeFunction("nvl", {}, DataTypeVector{int32(), int32()}, int32(),
+                     kResultNullNever, "nvl_int32_int32"),
+      NativeFunction("nvl", {}, DataTypeVector{int64(), int64()}, int64(),
+                     kResultNullNever, "nvl_int64_int64"),
+      NativeFunction("nvl", {}, DataTypeVector{float32(), float32()}, float32(),
+                     kResultNullNever, "nvl_float32_float32"),
+      NativeFunction("nvl", {}, DataTypeVector{float64(), float64()}, float64(),
+                     kResultNullNever, "nvl_float64_float64"),
+      NativeFunction("nvl", {}, DataTypeVector{boolean(), boolean()}, boolean(),
+                     kResultNullNever, "nvl_boolean_boolean"),
+
       NativeFunction("truncate", {"trunc"}, DataTypeVector{int64(), int32()}, int64(),
                      kResultNullIfNull, "truncate_int64_int32"),
       NativeFunction("random", {"rand"}, DataTypeVector{}, float64(), kResultNullNever,
