@@ -5,6 +5,7 @@
 #include "llvm/IR/Module.h"
 #include "gandiva/cache.h"
 #include "gandiva/projector.h"
+#include "gandiva/filter.h"
 
 namespace gandiva {
 template<class CacheKey>
