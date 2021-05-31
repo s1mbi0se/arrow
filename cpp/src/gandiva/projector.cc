@@ -142,34 +142,34 @@ Status Projector::Make(SchemaPtr schema, const ExpressionVector& exprs,
   // see if equivalent projector was already built
   //static Cache<ProjectorCacheKey, std::shared_ptr<llvm::MemoryBuffer>> cache;
 
-  // Cache ptrs
-  //static Cache<ProjectorCacheKey, std::shared_ptr<llvm::MemoryBuffer>> cache;
+  // to use when caching the entire module
+  //static Cache<ProjectorCacheKey, std::shared_ptr<Projector>> cache;
+
+  // Cache ptrs to use when caching only the obj code
   static std::unique_ptr<Cache<ProjectorCacheKey, std::shared_ptr<llvm::MemoryBuffer>>> cache_unique =
       std::make_unique<Cache<ProjectorCacheKey, std::shared_ptr<llvm::MemoryBuffer>>>();
   static std::shared_ptr<Cache<ProjectorCacheKey, std::shared_ptr<llvm::MemoryBuffer>>> shared_cache =
       std::move(cache_unique);
 
-  // Cache key ptrs
+  // Cache key ptrs to use when caching only the obj code
   ProjectorCacheKey cache_key(schema, configuration, exprs, selection_vector_mode);
   std::unique_ptr<ProjectorCacheKey> projector_key = std::make_unique<ProjectorCacheKey>(cache_key);
   std::shared_ptr<ProjectorCacheKey> shared_projector_key = std::move(projector_key);
 
-  // LLVM ObjectCache flag;
+  // LLVM ObjectCache flag to use when caching only the obj code
   bool llvm_flag = false;
 
-  //ProjectorCacheKey cache_key(schema, configuration, exprs, selection_vector_mode);
-
-  //Cache<ProjectorCacheKey, std::shared_ptr<llvm::MemoryBuffer>> cache;
-  //std::shared_ptr<Projector> cached_projector = cache.GetModule(cache_key);
-  //if (cached_projector != nullptr) {
-  //  *projector = cached_projector;
-  //  return Status::OK();
-  //}
+  // to use when caching the entire module
+  /*std::shared_ptr<Projector> cached_projector = cache.GetModule(cache_key);
+  if (cached_projector != nullptr) {
+    *projector = cached_projector;
+    return Status::OK();
+  }*/
 
   std::shared_ptr<llvm::MemoryBuffer> prev_cached_obj;
   prev_cached_obj = shared_cache->GetObjectCode(*shared_projector_key);
 
-  // Verify if previous filter objec code was cached
+  // Verify if previous projector obj code was cached
   if(prev_cached_obj != nullptr) {
     ARROW_LOG(INFO) << "[OBJ-CACHE-LOG]: Object code WAS already cached!";
     llvm_flag = true;
@@ -190,8 +190,8 @@ Status Projector::Make(SchemaPtr schema, const ExpressionVector& exprs,
   for (auto& expr : exprs) {
     ARROW_RETURN_NOT_OK(expr_validator.Validate(expr));
   }
-  //ARROW_RETURN_NOT_OK(llvm_gen->Build(exprs, selection_vector_mode)); -> old llvm build
-  ARROW_RETURN_NOT_OK(llvm_gen->Build(exprs, selection_vector_mode, obj_cache));
+  //ARROW_RETURN_NOT_OK(llvm_gen->Build(exprs, selection_vector_mode)); //-> old llvm build to use when caching the entire module
+  ARROW_RETURN_NOT_OK(llvm_gen->Build(exprs, selection_vector_mode, obj_cache)); // to use when caching only the obj code
 
   // save the output field types. Used for validation at Evaluate() time.
   std::vector<FieldPtr> output_fields;
@@ -200,23 +200,14 @@ Status Projector::Make(SchemaPtr schema, const ExpressionVector& exprs,
     output_fields.push_back(expr->result());
   }
 
-  shared_cache = obj_cache.GetCache();
-  std::shared_ptr<ProjectorCacheKey> obj_projector_key = obj_cache.GetKey();
-
-  std::shared_ptr<llvm::MemoryBuffer> cached_obj;
-  cached_obj = shared_cache->GetObjectCode(*obj_projector_key);
-
-  if(cached_obj != nullptr) {
-    ARROW_LOG(INFO) << "[OBJ-CACHE-LOG]: Object code HAS been cached!";
-  } else {
-    ARROW_LOG(INFO) << "[OBJ-CACHE-LOG]: Object code HAS NOT been cached!";
-  }
-
   // Instantiate the projector with the completely built llvm generator
   *projector = std::shared_ptr<Projector>(
       new Projector(std::move(llvm_gen), schema, output_fields, configuration));
   projector->get()->SetCompiledFromCache(llvm_flag);
-  //cache.PutModule(cache_key, *projector);
+
+  //cache.PutModule(cache_key, *projector); // to use when caching the entire module
+  //ARROW_LOG(INFO) << "[CACHE-LOG] " + cache.toString(); // to use when caching the entire module
+  ARROW_LOG(INFO) << "[CACHE-LOG] " + shared_cache->toString(); // to use when caching only the obj code
 
   return Status::OK();
 }

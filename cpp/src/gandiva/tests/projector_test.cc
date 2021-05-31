@@ -74,7 +74,7 @@ TEST_F(TestProjector, TestProjectCache) {
                            &cached_projector);
 
   ASSERT_OK(status);
-  //EXPECT_EQ(cached_projector, projector); -> old expect.
+  //EXPECT_EQ(cached_projector, projector); //-> old expect.
   EXPECT_TRUE(cached_projector->GetCompiledFromCache());
 
   // schema is different should return a new projector.
@@ -84,21 +84,21 @@ TEST_F(TestProjector, TestProjectCache) {
   status = Projector::Make(different_schema, {sum_expr, sub_expr}, configuration,
                            &should_be_new_projector);
   ASSERT_OK(status);
-  //EXPECT_NE(cached_projector, should_be_new_projector); -> old expect.
+  //EXPECT_NE(cached_projector, should_be_new_projector); //-> old expect.
   EXPECT_FALSE(should_be_new_projector->GetCompiledFromCache());
 
   // expression list is different should return a new projector.
   std::shared_ptr<Projector> should_be_new_projector1;
   status = Projector::Make(schema, {sum_expr}, configuration, &should_be_new_projector1);
   ASSERT_OK(status);
-  //EXPECT_NE(cached_projector, should_be_new_projector1); -> old expect.
+  //EXPECT_NE(cached_projector, should_be_new_projector1); //-> old expect.
   EXPECT_FALSE(should_be_new_projector1->GetCompiledFromCache());
 
   // another instance of the same configuration, should return the same projector.
   status = Projector::Make(schema, {sum_expr, sub_expr}, TestConfiguration(),
                            &cached_projector);
   ASSERT_OK(status);
-  //EXPECT_EQ(cached_projector, projector); -> old expect.
+  //EXPECT_EQ(cached_projector, projector); //-> old expect.
   EXPECT_TRUE(cached_projector->GetCompiledFromCache());
 }
 
