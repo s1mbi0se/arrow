@@ -302,7 +302,6 @@ Status Engine::FinalizeModule() {
 
   ARROW_RETURN_IF(llvm::verifyModule(*module_, &llvm::errs()),
                   Status::CodeGenError("Module verification failed after optimizer"));
-  ARROW_LOG(INFO) << "[OBJ-CACHE-LOG]: Checkpoint before the finalizeObject().";
   // do the compilation
   if(execution_engine_->hasError()) {
     //execution_engine_->finalizeObject();
