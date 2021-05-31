@@ -67,6 +67,8 @@ class LruCache {
       // insert the new item
       lru_list_.push_front(key);
       map_[key] = std::make_pair(value, lru_list_.begin());
+      cache_size_ += sizeof(key);
+      cache_size_ += sizeof(*value.get());
     }
   }
 
@@ -82,6 +84,8 @@ class LruCache {
       // insert the new item
       lru_list_.push_front(key);
       map_[key] = std::make_pair(value, lru_list_.begin());
+      cache_size_ += sizeof(key);
+      cache_size_ += sizeof(*value.get());
     }
   }
 
@@ -122,7 +126,8 @@ class LruCache {
 
   std::string toString(){
     auto lru_size = lru_list_.size();
-    std::string string = "LRU Cache list size: " + std::to_string(lru_size) + ".";
+    std::string string = "LRU Cache list size: " + std::to_string(lru_size) + "."
+        + " LRU Cache size: " + std::to_string(cache_size_);
     return string;
   }
 
@@ -138,5 +143,6 @@ class LruCache {
   map_type map_;
   list_type lru_list_;
   size_t cache_capacity_;
+  size_t cache_size_ = 0;
 };
 }  // namespace gandiva
