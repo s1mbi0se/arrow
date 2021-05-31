@@ -43,19 +43,6 @@ class Cache {
 
   Cache() : Cache(GetCapacity()) {}
 
-  // Move constructor
-  /*
-  Cache(Cache&& a) {
-    WriteLock rhs_lk(a.mtx_);
-    cache_ = std::move(a.cache_);
-  }
-
-  // Copy constructor
-  Cache(const Cache& a){
-    ReadLock  rhs_lk(a.mtx_);
-    cache_ = a.cache_;
-  }*/
-
   ValueType GetModule(KeyType cache_key) {
     arrow::util::optional<ValueType> result;
     mtx_.lock();
@@ -91,35 +78,6 @@ class Cache {
   std::string toString() {
     return cache_.toString();
   }
-
-  // Move operator
-  /*
-  Cache& operator=(Cache&& a)
-  {
-    if (this != &a)
-    {
-      WriteLock lhs_lk(mtx_, std::defer_lock);
-      WriteLock rhs_lk(a.mtx_, std::defer_lock);
-      std::lock(lhs_lk, rhs_lk);
-      cache_ = std::move(a.cache_);
-    }
-    return *this;
-  }
-
-  // Copy operator
-  Cache& operator=(const Cache& a)
-  {
-    if (this != &a)
-    {
-      WriteLock lhs_lk(mtx_, std::defer_lock);
-      ReadLock  rhs_lk(a.mtx_, std::defer_lock);
-      std::lock(lhs_lk, rhs_lk);
-      cache_ = a.cache_;
-    }
-    return *this;
-  }*/
-
-
 
  private:
   LruCache<KeyType, ValueType> cache_;
