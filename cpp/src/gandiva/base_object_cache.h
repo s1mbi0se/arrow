@@ -16,8 +16,6 @@ class BaseObjectCache : public llvm::ObjectCache {
     ARROW_LOG(INFO) << "[OBJ-CACHE-LOG]: Constructed the Projector Object Cache";
     cache_ = cache;
     cache_key_ = key;
-    std::string cache_log = cache_->toString();
-    ARROW_LOG(INFO) << "[OBJ-CACHE-LOG]: " << cache_log;
   };
 
   ~BaseObjectCache() {
