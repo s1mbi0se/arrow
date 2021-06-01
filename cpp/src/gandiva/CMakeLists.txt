@@ -90,6 +90,7 @@ set(SRC_FILES
     tree_expr_builder.cc
     to_date_holder.cc
     random_generator_holder.cc
+    convert_timezone_holder.cc
     ${GANDIVA_PRECOMPILED_CC_PATH})
 
 set(GANDIVA_SHARED_PRIVATE_LINK_LIBS arrow_shared LLVM::LLVM_INTERFACE
@@ -234,6 +235,7 @@ add_gandiva_test(internals-test
                  random_generator_holder_test.cc
                  hash_utils_test.cc
                  gdv_function_stubs_test.cc
+                 convert_timezone_holder_test.cc
                  EXTRA_DEPENDENCIES
                  LLVM::LLVM_INTERFACE
                  ${GANDIVA_OPENSSL_LIBS}

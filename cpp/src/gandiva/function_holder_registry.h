@@ -24,6 +24,7 @@
 
 #include "arrow/status.h"
 
+#include "gandiva/convert_timezone_holder.h"
 #include "gandiva/function_holder.h"
 #include "gandiva/like_holder.h"
 #include "gandiva/node.h"
@@ -64,6 +65,7 @@ class FunctionHolderRegistry {
         {"like", LAMBDA_MAKER(LikeHolder)},
         {"ilike", LAMBDA_MAKER(LikeHolder)},
         {"to_date", LAMBDA_MAKER(ToDateHolder)},
+        {"convert_timezone", LAMBDA_MAKER(ConvertTimezoneHolder)},
         {"random", LAMBDA_MAKER(RandomGeneratorHolder)},
         {"rand", LAMBDA_MAKER(RandomGeneratorHolder)},
     };
