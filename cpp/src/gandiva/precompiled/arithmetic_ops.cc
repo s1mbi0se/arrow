@@ -194,7 +194,7 @@ NUMERIC_TYPES(IS_TRUE_OR_FALSE_NUMERIC, isfalse, !)
 
 NUMERIC_BOOL_DATE_FUNCTION(NVL)
 
-#undef VALIDITY_OP
+#undef NVL
 
 FORCE_INLINE
 gdv_boolean not_boolean(gdv_boolean in) { return !in; }
