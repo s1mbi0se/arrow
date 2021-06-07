@@ -171,10 +171,10 @@ Status Projector::Make(SchemaPtr schema, const ExpressionVector& exprs,
 
   // Verify if previous projector obj code was cached
   if(prev_cached_obj != nullptr) {
-    ARROW_LOG(INFO) << "[OBJ-CACHE-LOG]: Object code WAS already cached!";
+    //ARROW_LOG(INFO) << "[OBJ-CACHE-LOG]: Object code WAS already cached!";
     llvm_flag = true;
   } else {
-    ARROW_LOG(INFO) << "[OBJ-CACHE-LOG]: Object code WAS NOT already cached!";
+    //ARROW_LOG(INFO) << "[OBJ-CACHE-LOG]: Object code WAS NOT already cached!";
   }
 
   BaseObjectCache<ProjectorCacheKey> obj_cache(shared_cache, shared_projector_key);
@@ -208,6 +208,7 @@ Status Projector::Make(SchemaPtr schema, const ExpressionVector& exprs,
   //cache.PutModule(cache_key, *projector); // to use when caching the entire module
   //ARROW_LOG(INFO) << "[CACHE-LOG] " + cache.toString(); // to use when caching the entire module
   ARROW_LOG(INFO) << "[CACHE-LOG] " + shared_cache->toString(); // to use when caching only the obj code
+  used_cache_size_ = shared_cache->getCacheSize();
 
   return Status::OK();
 }
@@ -387,5 +388,12 @@ void Projector::SetCompiledFromCache(bool flag) {
 bool Projector::GetCompiledFromCache() {
   return compiled_from_cache_;
 }
+
+size_t Projector::GetUsedCacheSize() {
+
+  return used_cache_size_;
+}
+
+size_t Projector::used_cache_size_ = 0;
 
 }  // namespace gandiva
