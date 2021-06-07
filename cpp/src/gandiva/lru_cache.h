@@ -17,7 +17,9 @@
 
 #pragma once
 
+#include <iostream>
 #include <list>
+#include <map>
 #include <unordered_map>
 #include <utility>
 
@@ -72,20 +74,25 @@ class LruCache {
     }
   }
 
-  void insertObject(key_type& key, const value_type value) {
+  void insertObject(key_type& key, const value_type value, size_t object_cache_size) {
     typename map_type::iterator i = map_.find(key);
     if (i == map_.end()) {
       // insert item into the cache, but first check if it is full
-      if (size() >= cache_capacity_) {
+      if (getLruCacheSize() >= cache_capacity_) {
         // cache is full, evict the least recently used item
-        evict();
+        evictObject();
+      }
+
+      if (getLruCacheSize() + object_cache_size >= cache_capacity_) {
+        // cache will pass the maximum capacity, evict the least recently used item
+        evictObject();
       }
 
       // insert the new item
       lru_list_.push_front(key);
       map_[key] = std::make_pair(value, lru_list_.begin());
-      cache_size_ += sizeof(key);
-      cache_size_ += sizeof(*value.get());
+      size_map_[key] = std::make_pair(object_cache_size, lru_list_.begin());
+      cache_size_ += object_cache_size;
     }
   }
 
@@ -122,6 +129,7 @@ class LruCache {
   void clear() {
     map_.clear();
     lru_list_.clear();
+    cache_size_ = 0;
   }
 
   std::string toString(){
@@ -131,6 +139,11 @@ class LruCache {
     return string;
   }
 
+  size_t getLruCacheSize(){
+    return cache_size_;
+  }
+
+
  private:
   void evict() {
     // evict item from the end of most recently used list
@@ -139,10 +152,23 @@ class LruCache {
     lru_list_.erase(i);
   }
 
+  void evictObject() {
+    // evict item from the end of most recently used list
+    typename list_type::iterator i = --lru_list_.end();
+    const size_t size_to_decrease = size_map_.find(*i)->second.first;
+    cache_size_ = cache_size_ - size_to_decrease;
+    map_.erase(*i);
+    size_map_.erase(*i);
+    lru_list_.erase(i);
+
+  }
+
  private:
   map_type map_;
   list_type lru_list_;
   size_t cache_capacity_;
   size_t cache_size_ = 0;
+  std::unordered_map<key_type, std::pair<size_t, typename list_type::iterator>,
+      hasher> size_map_;
 };
 }  // namespace gandiva

@@ -69,14 +69,18 @@ class Cache {
     mtx_.unlock();
   }
 
-  void PutObjectCode(KeyType& cache_key, ValueType objectCode) {
+  void PutObjectCode(KeyType& cache_key, ValueType object_code, size_t object_cache_size) {
     mtx_.lock();
-    cache_.insertObject(cache_key, objectCode);
+    cache_.insertObject(cache_key, object_code, object_cache_size);
     mtx_.unlock();
   }
 
   std::string toString() {
     return cache_.toString();
+  }
+
+  size_t getCacheSize(){
+    return cache_.getLruCacheSize();
   }
 
  private:

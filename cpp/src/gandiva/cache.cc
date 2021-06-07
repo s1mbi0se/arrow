@@ -20,7 +20,8 @@
 
 namespace gandiva {
 
-static const int DEFAULT_CACHE_SIZE = 500;
+//static const int DEFAULT_CACHE_SIZE = 500; //old cache capacity of 500 itens list
+static const int DEFAULT_CACHE_SIZE = 5120; //bytes
 
 int GetCapacity() {
   int capacity;
@@ -39,7 +40,7 @@ int GetCapacity() {
 }
 
 void LogCacheSize(size_t capacity) {
-  ARROW_LOG(INFO) << "Creating gandiva cache with capacity: " << capacity;
+  ARROW_LOG(INFO) << "Creating gandiva cache with capacity: " << capacity << " bytes";
 }
 
 }  // namespace gandiva
