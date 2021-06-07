@@ -57,12 +57,12 @@ class GANDIVA_EXPORT Engine {
   /// Set BaseObjectCache.
   template<class KeyType>
   Status SetLLVMObjectCache(BaseObjectCache<KeyType>& object_cache){
-    ARROW_LOG(INFO) << "[OBJ-CACHE-LOG]: Entered the SetLLVMObjectCache().";
+    //ARROW_LOG(INFO) << "[OBJ-CACHE-LOG]: Entered the SetLLVMObjectCache().";
     execution_engine_->setObjectCache(&object_cache);
     if (execution_engine_->hasError()){
       return Status::ExecutionError("[OBJ-CACHE-LOG]: Can not set Projector Object cache");
     } else {
-      ARROW_LOG(INFO) << "[OBJ-CACHE-LOG]: Exited with success the SetLLVMObjectCache().";
+      //ARROW_LOG(INFO) << "[OBJ-CACHE-LOG]: Exited with success the SetLLVMObjectCache().";
       return Status::OK();
     }
   }
