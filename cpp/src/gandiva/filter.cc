@@ -131,10 +131,10 @@ Status Filter::Make(SchemaPtr schema, ConditionPtr condition,
   // to use when caching only the obj code
   // Verify if previous filter obj code was cached
   if(prev_cached_obj != nullptr) {
-    ARROW_LOG(INFO) << "[OBJ-CACHE-LOG]: Object code WAS already cached!";
+    //ARROW_LOG(INFO) << "[OBJ-CACHE-LOG]: Object code WAS already cached!";
     llvm_flag = true;
   } else {
-    ARROW_LOG(INFO) << "[OBJ-CACHE-LOG]: Object code WAS NOT already cached!";
+    //ARROW_LOG(INFO) << "[OBJ-CACHE-LOG]: Object code WAS NOT already cached!";
   }
 
   BaseObjectCache<FilterCacheKey> obj_cache(shared_cache, shared_projector_key);
@@ -155,6 +155,7 @@ Status Filter::Make(SchemaPtr schema, ConditionPtr condition,
 
   filter->get()->SetCompiledFromCache(llvm_flag); // to use when caching only the obj code
   //cache.PutModule(cache_key, *filter); // to use when caching the entire module
+  used_cache_size_ = shared_cache->getCacheSize(); // track filter cache memory use
 
   //ARROW_LOG(INFO) << "[CACHE-LOG] " + cache.toString(); // to use when caching the entire module
   ARROW_LOG(INFO) << "[CACHE-LOG] " + shared_cache->toString(); // to use when caching only the obj code
@@ -202,5 +203,12 @@ void Filter::SetCompiledFromCache(bool flag) {
 bool Filter::GetCompiledFromCache() {
   return compiled_from_cache_;
 }
+
+size_t Filter::GetUsedCacheSize() {
+
+  return used_cache_size_;
+}
+
+size_t Filter::used_cache_size_ = 0;
 
 }  // namespace gandiva

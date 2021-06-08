@@ -24,9 +24,13 @@
 
 namespace gandiva {
 
+bool suite_test = true; // set to false to run the each test separately without error
+
 class TestObjectCache : public ::testing::Test {
  public:
-  void SetUp() { pool_ = arrow::default_memory_pool(); }
+  void SetUp() {
+    pool_ = arrow::default_memory_pool();
+  }
 
  protected:
   arrow::MemoryPool* pool_;
@@ -131,7 +135,7 @@ TEST_F(TestObjectCache, TestProjectorObjectCache) {
   ASSERT_EQ(4056, dummy_projector->GetUsedCacheSize());
 }
 
-TEST_F(TestObjectCache, TestObjectCacheEvict) {
+TEST_F(TestObjectCache, TestProjectorObjectCacheEvict) {
   // schema for input fields
   auto field0 = field("f0", arrow::int32());
   auto field1 = field("f2", arrow::int32());
@@ -200,14 +204,26 @@ TEST_F(TestObjectCache, TestObjectCacheEvict) {
   std::shared_ptr<Projector> projector1;
   auto status = Projector::Make(schema1, exprVec1, configuration, &projector1);
   ASSERT_OK(status);
-  ASSERT_EQ(1352, projector1->GetUsedCacheSize());
+
+  if (suite_test) {
+    ASSERT_EQ(4056, projector1->GetUsedCacheSize());
+  } else {
+    ASSERT_EQ(1352, projector1->GetUsedCacheSize());
+  }
+
   //usleep(0.5 * microsecond);//sleeps for 0.5 second, only for heap tracking
 
   // 2nd projector
   std::shared_ptr<Projector> projector2;
   status = Projector::Make(schema1, exprVec2, configuration, &projector2);
   ASSERT_OK(status);
-  ASSERT_EQ(2704, projector2->GetUsedCacheSize());
+
+  if (suite_test) {
+    ASSERT_EQ(4056, projector2->GetUsedCacheSize());
+  } else {
+    ASSERT_EQ(2704, projector2->GetUsedCacheSize());
+  }
+
   // usleep(0.5 * microsecond);//sleeps for 0.5 second, only for heap tracking
 
   // 3rd projector
@@ -238,6 +254,136 @@ TEST_F(TestObjectCache, TestObjectCacheEvict) {
   // to check if everything is still cached.
   std::shared_ptr<Projector> dummy_projector;
   ASSERT_EQ(4896, dummy_projector->GetUsedCacheSize());
+}
+
+TEST_F(TestObjectCache, TestFilterObjectCache) {
+  // schema for input fields
+  auto field0 = field("f0", arrow::int32());
+  auto field1 = field("f1", arrow::int32());
+  auto schema = arrow::schema({field0, field1});
+
+  // Build condition f0 + f1 < 10 and f0 + f1 > 5;
+  auto node_f0 = TreeExprBuilder::MakeField(field0);
+  auto node_f1 = TreeExprBuilder::MakeField(field1);
+  auto sum_func =
+      TreeExprBuilder::MakeFunction("add", {node_f0, node_f1}, arrow::int32());
+  auto literal_10 = TreeExprBuilder::MakeLiteral((int32_t)10);
+  auto literal_5 = TreeExprBuilder::MakeLiteral((int32_t)5);
+  auto less_than_10 = TreeExprBuilder::MakeFunction("less_than", {sum_func, literal_10},
+                                                    arrow::boolean());
+  auto greater_than_5 = TreeExprBuilder::MakeFunction("greater_than", {sum_func, literal_5},
+                                                      arrow::boolean());
+
+  auto condition_less_than_10 = TreeExprBuilder::MakeCondition(less_than_10);
+  auto condition_greater_than_5 = TreeExprBuilder::MakeCondition(greater_than_5);
+  auto configuration = TestConfiguration();
+
+  std::shared_ptr<Filter> filter1;
+  auto status = Filter::Make(schema, condition_less_than_10, configuration, &filter1);
+  ASSERT_EQ(1432, filter1->GetUsedCacheSize());
+  ASSERT_FALSE(filter1->GetCompiledFromCache());
+  ASSERT_OK(status);
+
+  std::shared_ptr<Filter> filter2;
+  status = Filter::Make(schema, condition_greater_than_5, configuration, &filter2);
+  ASSERT_OK(status);
+  ASSERT_FALSE(filter1->GetCompiledFromCache());
+  ASSERT_EQ(2864, filter2->GetUsedCacheSize());
+
+  filter1.reset();
+  filter2.reset();
+
+  std::shared_ptr<Filter> cached_filter1;
+  status = Filter::Make(schema, condition_less_than_10, configuration, &cached_filter1);
+  ASSERT_OK(status);
+  ASSERT_TRUE(cached_filter1->GetCompiledFromCache());
+  ASSERT_EQ(2864, cached_filter1->GetUsedCacheSize());
+
+  cached_filter1.reset();
+
+  std::shared_ptr<Filter> dummy_filter; // just to get the used cache by the filter.
+  ASSERT_EQ(2864, dummy_filter->GetUsedCacheSize());
+}
+
+TEST_F(TestObjectCache, TestFilterObjectCacheEvict) {
+  // schema for input fields
+  auto field0 = field("f0", arrow::int32());
+  auto field1 = field("f1", arrow::int32());
+  auto schema = arrow::schema({field0, field1});
+
+  // Build condition f0 + f1 < 10 and f0 + f1 > 5;
+  auto node_f0 = TreeExprBuilder::MakeField(field0);
+  auto node_f1 = TreeExprBuilder::MakeField(field1);
+
+  auto sum_func =
+      TreeExprBuilder::MakeFunction("add", {node_f0, node_f1}, arrow::int32());
+  auto sub_func =
+      TreeExprBuilder::MakeFunction("subtract", {node_f0, node_f1}, arrow::int32());
+  auto mul_func =
+      TreeExprBuilder::MakeFunction("multiply", {node_f0, node_f1}, arrow::int32());
+  auto div_func =
+      TreeExprBuilder::MakeFunction("divide", {node_f0, node_f1}, arrow::int32());
+
+  auto literal_10 = TreeExprBuilder::MakeLiteral((int32_t)10);
+  auto literal_5 = TreeExprBuilder::MakeLiteral((int32_t)5);
+
+  auto add_less_than_10 = TreeExprBuilder::MakeFunction("less_than", {sum_func, literal_10},
+                                                        arrow::boolean());
+  auto sub_greater_than_10 = TreeExprBuilder::MakeFunction("greater_than", {sub_func, literal_10},
+                                                            arrow::boolean());
+
+  auto mul_greater_than_5 = TreeExprBuilder::MakeFunction("greater_than", {mul_func, literal_5},
+                                                      arrow::boolean());
+  auto div_less_than_5 = TreeExprBuilder::MakeFunction("less_than", {div_func, literal_5},
+                                                          arrow::boolean());
+
+  auto condition_add_less_than_10= TreeExprBuilder::MakeCondition(add_less_than_10);
+  auto condition_sub_greater_than_10 = TreeExprBuilder::MakeCondition(sub_greater_than_10);
+  auto condition_mul_greater_than_5 = TreeExprBuilder::MakeCondition(mul_greater_than_5);
+  auto condition_div_less_than_5 = TreeExprBuilder::MakeCondition(div_less_than_5);
+
+
+  auto configuration = TestConfiguration();
+
+  std::shared_ptr<Filter> filter1;
+  auto status = Filter::Make(schema, condition_add_less_than_10, configuration, &filter1);
+  ASSERT_OK(status);
+  if(suite_test) {
+    ASSERT_EQ(2864, filter1->GetUsedCacheSize());
+    ASSERT_TRUE(filter1->GetCompiledFromCache());
+  } else {
+    ASSERT_EQ(1432, filter1->GetUsedCacheSize());
+    ASSERT_FALSE(filter1->GetCompiledFromCache());
+  }
+
+  std::shared_ptr<Filter> filter2;
+  status = Filter::Make(schema, condition_mul_greater_than_5, configuration, &filter2);
+  ASSERT_OK(status);
+  ASSERT_FALSE(filter2->GetCompiledFromCache());
+  if(suite_test){
+    ASSERT_EQ(4296, filter2->GetUsedCacheSize());
+  } else {
+    ASSERT_EQ(2864, filter2->GetUsedCacheSize());
+  }
+
+  std::shared_ptr<Filter> filter3;
+  status = Filter::Make(schema, condition_sub_greater_than_10, configuration, &filter3);
+  ASSERT_OK(status);
+  ASSERT_FALSE(filter3->GetCompiledFromCache());
+  ASSERT_EQ(4296, filter3->GetUsedCacheSize());
+
+  std::shared_ptr<Filter> filter4;
+  status = Filter::Make(schema, condition_div_less_than_5, configuration, &filter4);
+  ASSERT_OK(status);
+  ASSERT_FALSE(filter4->GetCompiledFromCache());
+  ASSERT_EQ(3920, filter4->GetUsedCacheSize());
+
+  filter1.reset();
+  filter2.reset();
+  filter3.reset();
+
+  std::shared_ptr<Filter> dummy_filter; // just to get the used cache by the filter.
+  ASSERT_EQ(3920, dummy_filter->GetUsedCacheSize());
 }
 
 }
