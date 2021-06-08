@@ -21,7 +21,7 @@
 namespace gandiva {
 
 //static const int DEFAULT_CACHE_SIZE = 500; //old cache capacity of 500 itens list
-static const int DEFAULT_CACHE_SIZE = 5120; //bytes
+static const int DEFAULT_CACHE_SIZE = 52428800; //bytes or 50 MiB
 
 int GetCapacity() {
   int capacity;
