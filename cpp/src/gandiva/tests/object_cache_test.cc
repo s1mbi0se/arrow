@@ -30,6 +30,7 @@ class TestObjectCache : public ::testing::Test {
  public:
   void SetUp() {
     pool_ = arrow::default_memory_pool();
+    setenv("GANDIVA_CACHE_SIZE", "5120", 1);
   }
 
  protected:
