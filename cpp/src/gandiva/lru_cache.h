@@ -23,6 +23,7 @@
 #include <unordered_map>
 #include <utility>
 #include <llvm/Support/MemoryBuffer.h>
+#include <boost/filesystem.hpp>
 #include "llvm/Support/FileSystem.h"
 #include "llvm/Support/Path.h"
 #include "arrow/util/optional.h"
@@ -103,7 +104,6 @@ struct hasher {
       map_[key] = std::make_pair(value, lru_list_.begin());
       size_map_[key] = std::make_pair(object_cache_size, lru_list_.begin());
       cache_size_ += object_cache_size;
-      saveObjectToCacheDir(key, value);
     }
   }
 
@@ -212,7 +212,7 @@ struct hasher {
     map_.clear();
     lru_list_.clear();
     cache_size_ = 0;
-    //TODO: find a way for cross-platform to delete the cache folder.
+    clearCacheDisk();
   }
 
   std::string toString(){
@@ -239,11 +239,12 @@ struct hasher {
     // evict item from the end of most recently used list
     typename list_type::iterator i = --lru_list_.end();
     const size_t size_to_decrease = size_map_.find(*i)->second.first;
+    const value_type value = map_.find(*i)->second.first;
+    saveObjectToCacheDir(*i, value);
     cache_size_ = cache_size_ - size_to_decrease;
     map_.erase(*i);
     size_map_.erase(*i);
     lru_list_.erase(i);
-
   }
 
   void evitObjectSafely(size_t object_cache_size) {
@@ -275,6 +276,21 @@ struct hasher {
     }
 
 
+  }
+
+  void clearCacheDisk() {
+    boost::system::error_code error_code;
+    boost::filesystem::remove_all(cache_dir_.c_str(), error_code);
+
+    if(error_code.value() != 0) {
+      fprintf(stderr, "Unable to delete cache directory\n");
+      return;
+    }
+
+    if (!llvm::sys::fs::exists(cache_dir_.str()) && llvm::sys::fs::create_directory(cache_dir_.str())) {
+      fprintf(stderr, "Unable to create cache directory\n");
+      return;
+    }
   }
 
  private:
