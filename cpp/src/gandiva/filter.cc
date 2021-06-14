@@ -42,7 +42,7 @@ FilterCacheKey::FilterCacheKey(SchemaPtr schema,
   expression_as_string_ = expression.ToString();
   UpdateUniqifier(expression_as_string_);
   arrow::internal::hash_combine(result, expression_as_string_);
-  arrow::internal::hash_combine(result, configuration);
+  arrow::internal::hash_combine(result, configuration->Hash());
   arrow::internal::hash_combine(result, schema_->ToString());
   arrow::internal::hash_combine(result, uniqifier_);
   hash_code_ = result;

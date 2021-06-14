@@ -54,7 +54,7 @@ class Cache {
   ValueType GetObjectCode(KeyType cache_key) {
     arrow::util::optional<ValueType> result;
     mtx_.lock();
-    result = cache_.get(cache_key);
+    result = cache_.getObject(cache_key);
     mtx_.unlock();
     if (result != arrow::util::nullopt) {
       return *result;

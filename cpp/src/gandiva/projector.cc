@@ -24,6 +24,7 @@
 
 #include "arrow/util/hash_util.h"
 #include "arrow/util/logging.h"
+#include "gandiva/base_cache_key.h"
 #include "gandiva/base_object_cache.h"
 #include "gandiva/cache.h"
 #include "gandiva/expr_validator.h"
@@ -146,15 +147,41 @@ Status Projector::Make(SchemaPtr schema, const ExpressionVector& exprs,
   //static Cache<ProjectorCacheKey, std::shared_ptr<Projector>> cache;
 
   // Cache ptrs to use when caching only the obj code
-  static std::unique_ptr<Cache<ProjectorCacheKey, std::shared_ptr<llvm::MemoryBuffer>>> cache_unique =
+  /*static std::unique_ptr<Cache<ProjectorCacheKey, std::shared_ptr<llvm::MemoryBuffer>>> cache_unique =
       std::make_unique<Cache<ProjectorCacheKey, std::shared_ptr<llvm::MemoryBuffer>>>();
   static std::shared_ptr<Cache<ProjectorCacheKey, std::shared_ptr<llvm::MemoryBuffer>>> shared_cache =
+      std::move(cache_unique);*/
+
+  // Cache ptrs to use when caching only the expressions
+  static std::unique_ptr<Cache<BaseCacheKey, std::shared_ptr<llvm::MemoryBuffer>>> cache_unique =
+      std::make_unique<Cache<BaseCacheKey, std::shared_ptr<llvm::MemoryBuffer>>>();
+  static std::shared_ptr<Cache<BaseCacheKey, std::shared_ptr<llvm::MemoryBuffer>>> shared_cache =
       std::move(cache_unique);
 
+  static std::unique_ptr<Cache<BaseCacheKey, std::shared_ptr<EvalFunc>>> expr_cache_unique =
+      std::make_unique<Cache<BaseCacheKey, std::shared_ptr<EvalFunc>>>();
+  static std::shared_ptr<Cache<BaseCacheKey, std::shared_ptr<EvalFunc>>> expr_cache_shared_cache =
+      std::move(expr_cache_unique);
+
   // Cache key ptrs to use when caching only the obj code
-  ProjectorCacheKey cache_key(schema, configuration, exprs, selection_vector_mode);
+  /*ProjectorCacheKey cache_key(schema, configuration, exprs, selection_vector_mode);
   std::unique_ptr<ProjectorCacheKey> projector_key = std::make_unique<ProjectorCacheKey>(cache_key);
-  std::shared_ptr<ProjectorCacheKey> shared_projector_key = std::move(projector_key);
+  std::shared_ptr<ProjectorCacheKey> shared_projector_key = std::move(projector_key);*/
+
+  // Cache key ptrs to use when caching only the obj code
+  ProjectorCacheKey projector_key(schema, configuration, exprs, selection_vector_mode);
+  BaseCacheKey cache_key(projector_key, "projector");
+  std::unique_ptr<BaseCacheKey> base_cache_key = std::make_unique<BaseCacheKey>(cache_key);
+  std::shared_ptr<BaseCacheKey> shared_base_cache_key = std::move(base_cache_key);
+
+  std::vector<std::shared_ptr<BaseCacheKey>> expr_cache_keys;
+  expr_cache_keys.reserve(exprs.size());
+  for (auto expr : exprs) {
+    std::unique_ptr<BaseCacheKey> expr_cache_key =
+        std::make_unique<BaseCacheKey>(schema, expr,"expression");
+    std::shared_ptr<BaseCacheKey> expr_shared_key = std::move(expr_cache_key);
+    expr_cache_keys.push_back(std::move(expr_shared_key));
+  }
 
   // LLVM ObjectCache flag to use when caching only the obj code
   bool llvm_flag = false;
@@ -167,7 +194,7 @@ Status Projector::Make(SchemaPtr schema, const ExpressionVector& exprs,
   }*/
 
   std::shared_ptr<llvm::MemoryBuffer> prev_cached_obj;
-  prev_cached_obj = shared_cache->GetObjectCode(*shared_projector_key);
+  prev_cached_obj = shared_cache->GetObjectCode(*shared_base_cache_key);
 
   // Verify if previous projector obj code was cached
   if(prev_cached_obj != nullptr) {
@@ -177,7 +204,7 @@ Status Projector::Make(SchemaPtr schema, const ExpressionVector& exprs,
     //ARROW_LOG(INFO) << "[OBJ-CACHE-LOG]: Object code WAS NOT already cached!";
   }
 
-  BaseObjectCache<ProjectorCacheKey> obj_cache(shared_cache, shared_projector_key);
+  BaseObjectCache<BaseCacheKey> obj_cache(shared_cache, shared_base_cache_key);
 
   // Build LLVM generator, and generate code for the specified expressions
   std::unique_ptr<LLVMGenerator> llvm_gen;
@@ -191,8 +218,8 @@ Status Projector::Make(SchemaPtr schema, const ExpressionVector& exprs,
     ARROW_RETURN_NOT_OK(expr_validator.Validate(expr));
   }
   //ARROW_RETURN_NOT_OK(llvm_gen->Build(exprs, selection_vector_mode)); //-> old llvm build to use when caching the entire module
-  ARROW_RETURN_NOT_OK(llvm_gen->Build(exprs, selection_vector_mode, obj_cache)); // to use when caching only the obj code
-
+  //ARROW_RETURN_NOT_OK(llvm_gen->Build(exprs, selection_vector_mode, obj_cache)); // to use when caching only the obj code
+  ARROW_RETURN_NOT_OK(llvm_gen->Build(exprs, selection_vector_mode, obj_cache, expr_cache_keys, expr_cache_shared_cache));
   // save the output field types. Used for validation at Evaluate() time.
   std::vector<FieldPtr> output_fields;
   output_fields.reserve(exprs.size());

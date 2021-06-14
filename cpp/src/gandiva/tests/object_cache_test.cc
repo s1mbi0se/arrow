@@ -1,11 +1,16 @@
-//
-// Created by augusto on 07/06/2021.
-//
+#ifdef WINDOWS
+#include <direct.h>
+#define GetCurrentDir _getcwd
+#else
+#include <unistd.h>
+#define GetCurrentDir getcwd
+#endif
 
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
 #endif
 
+#include <chrono>
 #include "gandiva/projector.h"
 #include "gandiva/filter.h"
 
@@ -24,7 +29,7 @@
 
 namespace gandiva {
 
-bool suite_test = true; // set to false to run the each test separately without error
+bool suite_test = false; // set to false to run the each test separately without error
 
 class TestObjectCache : public ::testing::Test {
  public:
@@ -385,6 +390,70 @@ TEST_F(TestObjectCache, TestFilterObjectCacheEvict) {
 
   std::shared_ptr<Filter> dummy_filter; // just to get the used cache by the filter.
   ASSERT_EQ(3920, dummy_filter->GetUsedCacheSize());
+}
+
+TEST_F(TestObjectCache, TestProjectorObjectCacheForEachExpression) {
+  auto start = std::chrono::high_resolution_clock::now();
+  // schema for input fields
+  auto field0 = field("f0", arrow::int32());
+  auto field1 = field("f2", arrow::int32());
+
+
+  auto schema1 = arrow::schema({field0, field1});
+
+
+  // output fields
+  auto field_sum = field("add", arrow::int32());
+  auto field_sub = field("subtract", arrow::int32());
+  auto field_mul = field("multiply", arrow::int32());
+  auto field_div = field("divide", arrow::int32());
+  auto field_eq = field("equal", arrow::boolean());
+  auto field_lt = field("less_than", arrow::boolean());
+
+  // Build expressions for schema1
+  auto sum_expr = TreeExprBuilder::MakeExpression("add", {field0, field1}, field_sum);
+  auto sub_expr =
+      TreeExprBuilder::MakeExpression("subtract", {field0, field1}, field_sub);
+  auto mul_expr =
+      TreeExprBuilder::MakeExpression("multiply", {field0, field1}, field_mul);
+  auto div_expr = TreeExprBuilder::MakeExpression("divide", {field0, field1}, field_div);
+  auto eq_expr = TreeExprBuilder::MakeExpression("equal", {field0, field1}, field_eq);
+  auto lt_expr = TreeExprBuilder::MakeExpression("less_than", {field0, field1}, field_lt);
+
+
+  auto configuration = TestConfiguration();
+
+  // Uses field0, field1 and schema1
+  ExpressionVector exprVec1 = {sum_expr, sub_expr, mul_expr};
+  ExpressionVector exprVec2 = {sum_expr, sub_expr, mul_expr, div_expr, eq_expr, lt_expr};
+
+  //unsigned int microsecond = 1000000;
+  // usleep(0.5 * microsecond);//sleeps for 0.5 second, only for heap tracking
+
+
+  std::shared_ptr<Projector> projector1;
+  auto status = Projector::Make(schema1, exprVec1, configuration, &projector1);
+  ASSERT_OK(status);
+
+  projector1.reset();
+
+  std::shared_ptr<Projector> projector2;
+  status = Projector::Make(schema1, exprVec2, configuration, &projector2);
+  ASSERT_OK(status);
+
+  projector2.reset();
+  auto stop = std::chrono::high_resolution_clock::now();
+
+  auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
+
+  // To get the value of duration use the count()
+  // member function on the duration object
+  std::cout <<"Elapsed time: " << duration.count() << std::endl;
+
+  // Dummy projector, just to access the cache that the projectors used
+  // to check if everything is still cached.
+  //std::shared_ptr<Projector> dummy_projector;
+  //ASSERT_EQ(1960, dummy_projector->GetUsedCacheSize());
 }
 
 }

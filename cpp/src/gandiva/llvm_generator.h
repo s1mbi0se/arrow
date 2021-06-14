@@ -23,6 +23,7 @@
 #include <vector>
 
 #include "arrow/util/macros.h"
+#include "expr_decomposer.h"
 #include "gandiva//base_object_cache.h"
 #include "gandiva/annotator.h"
 #include "gandiva/compiled_expr.h"
@@ -77,6 +78,58 @@ class GANDIVA_EXPORT LLVMGenerator {
       auto ir_fn = compiled_expr->GetIRFunction(mode);
       auto jit_fn = reinterpret_cast<EvalFunc>(engine_->CompiledFunction(ir_fn));
       compiled_expr->SetJITFunction(selection_vector_mode_, jit_fn);
+    }
+
+    return Status::OK();
+  }
+
+  /// \brief Build the code for the expression trees for default mode with a LLVM ObjectCache.
+  /// Each element in the vector represents an expression tree
+  template <class KeyType, class CacheType>
+  Status Build(const ExpressionVector& exprs, SelectionVector::Mode mode,
+               BaseObjectCache<KeyType>& obj_cache,
+               std::vector<std::shared_ptr<KeyType>> expr_cache_keys,
+               CacheType& cache){
+    selection_vector_mode_ = mode;
+
+    for (auto& expr : exprs) {
+      auto output = annotator_.AddOutputFieldDescriptor(expr->result());
+      ARROW_RETURN_NOT_OK(Add(expr, output));
+    }
+
+    ARROW_RETURN_NOT_OK(engine_->SetLLVMObjectCache(obj_cache));
+
+    // Compile and inject into the process' memory the generated function.
+    ARROW_RETURN_NOT_OK(engine_->FinalizeModule());
+
+    // setup the jit functions for each expression.
+    /*for (auto& compiled_expr : compiled_exprs_) {
+      ARROW_LOG(INFO) << "CHECKPOINT 01 - SETUP JIT!";
+      auto ir_fn = compiled_expr->GetIRFunction(mode);
+      ARROW_LOG(INFO) << "CHECKPOINT 02 - SETUP JIT!";
+      auto jit_fn = reinterpret_cast<EvalFunc>(engine_->CompiledFunction(ir_fn));
+      ARROW_LOG(INFO) << "CHECKPOINT 03 - SETUP JIT!";
+      compiled_expr->SetJITFunction(selection_vector_mode_, jit_fn);
+      ARROW_LOG(INFO) << "CHECKPOINT 04 - SETUP JIT!";
+    }*/
+
+    for (size_t i = 0; i < compiled_exprs_.size(); ++i) {
+      ARROW_LOG(INFO) << "[EXPR-CACHE-LOG]: GET IR FUNC!";
+      auto ir_fn = compiled_exprs_[i]->GetIRFunction(mode);
+
+      std::shared_ptr<EvalFunc> cached_expr = cache->GetModule(*expr_cache_keys[i]);
+      if(cached_expr != nullptr) {
+        ARROW_LOG(INFO) << "[EXPR-CACHE-LOG]: JIT FUNC **WAS** ALREADY CACHED!";
+        compiled_exprs_[i]->SetJITFunction(selection_vector_mode_, *cached_expr);
+      } else {
+        ARROW_LOG(INFO) << "[EXPR-CACHE-LOG]: JIT FUNC **WAS NOT** CACHED!";
+        auto jit_fn = reinterpret_cast<EvalFunc>(engine_->CompiledFunction(ir_fn));
+        compiled_exprs_[i]->SetJITFunction(selection_vector_mode_, jit_fn);
+        std::shared_ptr<EvalFunc> to_cache_jit = std::make_shared<EvalFunc>(jit_fn);
+        cache->PutModule(*expr_cache_keys[i], to_cache_jit);
+      }
+
+      ARROW_LOG(INFO) << "[EXPR]" << cache->toString();
     }
 
     return Status::OK();
@@ -271,7 +324,7 @@ class GANDIVA_EXPORT LLVMGenerator {
   void AddTrace(const std::string& msg, llvm::Value* value = NULLPTR);
 
   std::unique_ptr<Engine> engine_;
-  std::vector<std::unique_ptr<CompiledExpr>> compiled_exprs_;
+  std::vector<std::shared_ptr<CompiledExpr>> compiled_exprs_;
   FunctionRegistry function_registry_;
   Annotator annotator_;
   SelectionVector::Mode selection_vector_mode_;
