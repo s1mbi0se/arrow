@@ -158,7 +158,7 @@ Status Filter::Make(SchemaPtr schema, ConditionPtr condition,
   used_cache_size_ = shared_cache->getCacheSize(); // track filter cache memory use
 
   //ARROW_LOG(INFO) << "[CACHE-LOG] " + cache.toString(); // to use when caching the entire module
-  ARROW_LOG(INFO) << "[CACHE-LOG] " + shared_cache->toString(); // to use when caching only the obj code
+  ARROW_LOG(DEBUG) << "[DEBUG][FILTER-CACHE-LOG] " + shared_cache->toString(); // to use when caching only the obj code
 
   return Status::OK();
 }

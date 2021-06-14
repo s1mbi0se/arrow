@@ -36,6 +36,8 @@ class TestObjectCache : public ::testing::Test {
   void SetUp() {
     pool_ = arrow::default_memory_pool();
     setenv("GANDIVA_CACHE_SIZE", "5120", 1);
+    // Setup arrow log severity threshold to debug level.
+    arrow::util::ArrowLog::StartArrowLog("", arrow::util::ArrowLogLevel::ARROW_DEBUG);
   }
 
  protected:

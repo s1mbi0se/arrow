@@ -234,7 +234,7 @@ Status Projector::Make(SchemaPtr schema, const ExpressionVector& exprs,
 
   //cache.PutModule(cache_key, *projector); // to use when caching the entire module
   //ARROW_LOG(INFO) << "[CACHE-LOG] " + cache.toString(); // to use when caching the entire module
-  ARROW_LOG(INFO) << "[CACHE-LOG] " + shared_cache->toString(); // to use when caching only the obj code
+  ARROW_LOG(DEBUG) << "[DEBUG][PROJECTOR-CACHE-LOG]: " + shared_cache->toString(); // to use when caching only the obj code
   used_cache_size_ = shared_cache->getCacheSize();
 
   return Status::OK();

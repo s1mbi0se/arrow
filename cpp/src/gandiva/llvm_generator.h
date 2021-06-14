@@ -114,22 +114,22 @@ class GANDIVA_EXPORT LLVMGenerator {
     }*/
 
     for (size_t i = 0; i < compiled_exprs_.size(); ++i) {
-      ARROW_LOG(INFO) << "[EXPR-CACHE-LOG]: GET IR FUNC!";
       auto ir_fn = compiled_exprs_[i]->GetIRFunction(mode);
 
       std::shared_ptr<EvalFunc> cached_expr = cache->GetModule(*expr_cache_keys[i]);
       if(cached_expr != nullptr) {
-        ARROW_LOG(INFO) << "[EXPR-CACHE-LOG]: JIT FUNC **WAS** ALREADY CACHED!";
+        ARROW_LOG(DEBUG) << "[DEBUG][EXPR-CACHE-LOG]: The expression WAS already cached!";
         compiled_exprs_[i]->SetJITFunction(selection_vector_mode_, *cached_expr);
       } else {
-        ARROW_LOG(INFO) << "[EXPR-CACHE-LOG]: JIT FUNC **WAS NOT** CACHED!";
+        ARROW_LOG(DEBUG) << "[DEBUG][EXPR-CACHE-LOG]: The expression WAS NOT already cached!";
         auto jit_fn = reinterpret_cast<EvalFunc>(engine_->CompiledFunction(ir_fn));
         compiled_exprs_[i]->SetJITFunction(selection_vector_mode_, jit_fn);
         std::shared_ptr<EvalFunc> to_cache_jit = std::make_shared<EvalFunc>(jit_fn);
         cache->PutModule(*expr_cache_keys[i], to_cache_jit);
+        ARROW_LOG(DEBUG) << "[DEBUG][EXPR-CACHE-LOG]: The expression has been cached!";
       }
 
-      ARROW_LOG(INFO) << "[EXPR]" << cache->toString();
+      ARROW_LOG(DEBUG) << "[DEBUG][EXPR-CACHE-LOG]: " << cache->toString();
     }
 
     return Status::OK();

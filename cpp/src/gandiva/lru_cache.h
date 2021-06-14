@@ -180,7 +180,7 @@ struct hasher {
         // This file is in our disk!
         auto obj_cache_buffer = llvm::MemoryBuffer::getFile(obj_cache_file, -1, true, false);
         std::shared_ptr<llvm::MemoryBuffer> obj_cache_buffer_shared = std::move(obj_cache_buffer.get());
-        reinsertObject(key, obj_cache_buffer_shared, obj_cache_buffer_shared->getBufferSize());
+        //reinsertObject(key, obj_cache_buffer_shared, obj_cache_buffer_shared->getBufferSize());
         remove(obj_cache_file.c_str()); // delete the file after reinserting it to memory.
         return obj_cache_buffer_shared;
       }
@@ -240,7 +240,7 @@ struct hasher {
     typename list_type::iterator i = --lru_list_.end();
     const size_t size_to_decrease = size_map_.find(*i)->second.first;
     const value_type value = map_.find(*i)->second.first;
-    saveObjectToCacheDir(*i, value);
+    //saveObjectToCacheDir(*i, value);
     cache_size_ = cache_size_ - size_to_decrease;
     map_.erase(*i);
     size_map_.erase(*i);

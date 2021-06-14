@@ -29,7 +29,11 @@ using arrow::int32;
 
 class TestFilter : public ::testing::Test {
  public:
-  void SetUp() { pool_ = arrow::default_memory_pool(); }
+  void SetUp() {
+    pool_ = arrow::default_memory_pool();
+    // Setup arrow log severity threshold to debug level.
+    arrow::util::ArrowLog::StartArrowLog("", arrow::util::ArrowLogLevel::ARROW_DEBUG);
+  }
 
  protected:
   arrow::MemoryPool* pool_;
