@@ -1,14 +1,19 @@
-#ifdef WINDOWS
-#include <direct.h>
-#define GetCurrentDir _getcwd
-#else
-#include <unistd.h>
-#define GetCurrentDir getcwd
-#endif
-
-#ifndef M_PI
-#define M_PI 3.14159265358979323846
-#endif
+// Licensed to the Apache Software Foundation (ASF) under one
+// or more contributor license agreements.  See the NOTICE file
+// distributed with this work for additional information
+// regarding copyright ownership.  The ASF licenses this file
+// to you under the Apache License, Version 2.0 (the
+// "License"); you may not use this file except in compliance
+// with the License.  You may obtain a copy of the License at
+//
+//   http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing,
+// software distributed under the License is distributed on an
+// "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+// KIND, either express or implied.  See the License for the
+// specific language governing permissions and limitations
+// under the License.
 
 #include <chrono>
 #include "gandiva/projector.h"
@@ -29,7 +34,7 @@
 
 namespace gandiva {
 
-bool suite_test = false; // set to false to run the each test separately without error
+bool suite_test = true; // set to false to run the each test separately without error
 
 class TestObjectCache : public ::testing::Test {
  public:
@@ -452,10 +457,10 @@ TEST_F(TestObjectCache, TestProjectorObjectCacheForEachExpression) {
   // member function on the duration object
   std::cout <<"Elapsed time: " << duration.count() << std::endl;
 
-  // Dummy projector, just to access the cache that the projectors used
+  // Dummy projector, just to access the cache that the pr  ojectors used
   // to check if everything is still cached.
-  //std::shared_ptr<Projector> dummy_projector;
-  //ASSERT_EQ(1960, dummy_projector->GetUsedCacheSize());
+  std::shared_ptr<Projector> dummy_projector;
+  //ASSERT_EQ(3600, dummy_projector->GetUsedCacheSize());
 }
 
 }

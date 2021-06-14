@@ -18,6 +18,7 @@
 #pragma once
 
 #include <iostream>
+#include <fstream>
 #include <list>
 #include <map>
 #include <unordered_map>
@@ -27,6 +28,7 @@
 #include "llvm/Support/FileSystem.h"
 #include "llvm/Support/Path.h"
 #include "arrow/util/optional.h"
+#include "arrow/util/logging.h"
 
 // modified from boost LRU cache -> the boost cache supported only an
 // ordered map.
@@ -52,6 +54,41 @@ struct hasher {
     llvm::sys::fs::current_path(cache_dir_);
     llvm::sys::path::append(cache_dir_, "cache");
     std::cout << "Cache dir path: " << std::string(cache_dir_) << std::endl;
+
+    //Reads the disk cache info
+    std::string cache_info_filename = "cache.info";
+    llvm::SmallString<128>cache_info = cache_dir_;
+    llvm::sys::path::append(cache_info, cache_info_filename);
+
+    std::fstream cache_info_file;
+    cache_info_file.open(cache_info.c_str(), std::ios::in);
+
+    if (!cache_info_file) {
+      ARROW_LOG(DEBUG) << "[DEBUG][CACHE-LOG]: Can not find the cache.info file!";
+      cache_info_file.close();
+
+      // create the cache.info file
+      cache_info_file.open(cache_info.c_str(), std::ios::out);
+      cache_info_file << "disk-usage=0" << std::endl;
+      cache_info_file << "number-of-files=0" << std::endl;
+      cache_info_file.close();
+    } else {
+      std::string disk_usage_str;
+      std::string disk_number_of_files_str;
+
+      cache_info_file >> disk_usage_str;
+      cache_info_file >> disk_number_of_files_str;
+
+      disk_cache_size_ = std::stoul(disk_usage_str.substr(disk_usage_str.find("=")+1));
+      disk_cache_files_qty_ = std::stoul(disk_number_of_files_str.substr(disk_number_of_files_str.find("=")+1));
+
+      ARROW_LOG(DEBUG) << "[DEBUG][CACHE-LOG]: Initial disk usage: " <<
+          std::to_string(disk_cache_size_) << " bytes.";
+      ARROW_LOG(DEBUG) << "[DEBUG][CACHE-LOG]: Initial disk number of files: " <<
+                       std::to_string(disk_cache_files_qty_) << ".";
+
+    }
+
   }
 
   ~LruCache() {}
@@ -180,8 +217,10 @@ struct hasher {
         // This file is in our disk!
         auto obj_cache_buffer = llvm::MemoryBuffer::getFile(obj_cache_file, -1, true, false);
         std::shared_ptr<llvm::MemoryBuffer> obj_cache_buffer_shared = std::move(obj_cache_buffer.get());
-        //reinsertObject(key, obj_cache_buffer_shared, obj_cache_buffer_shared->getBufferSize());
-        remove(obj_cache_file.c_str()); // delete the file after reinserting it to memory.
+        reinsertObject(key, obj_cache_buffer_shared, obj_cache_buffer_shared->getBufferSize());
+
+        removeObjectCodeCacheFile(obj_cache_file.c_str(), obj_cache_buffer_shared->getBufferSize());
+        //remove(obj_cache_file.c_str()); // delete the file after reinserting it to memory.
         return obj_cache_buffer_shared;
       }
     }
@@ -240,7 +279,7 @@ struct hasher {
     typename list_type::iterator i = --lru_list_.end();
     const size_t size_to_decrease = size_map_.find(*i)->second.first;
     const value_type value = map_.find(*i)->second.first;
-    //saveObjectToCacheDir(*i, value);
+    saveObjectToCacheDir(*i, value);
     cache_size_ = cache_size_ - size_to_decrease;
     map_.erase(*i);
     size_map_.erase(*i);
@@ -271,11 +310,44 @@ struct hasher {
       std::error_code ErrStr;
       llvm::raw_fd_ostream CachedObjectFile(obj_cache_file.c_str(), ErrStr);
       CachedObjectFile << value->getBuffer();
+      disk_cache_size_ +=  value->getBufferSize();
+      disk_cache_files_qty_ += 1;
+      CachedObjectFile.close();
+      updateCacheInfoFile();
     } else {
       std::cout << "File " << obj_file_name << " already exists." << std::endl;
     }
 
 
+  }
+
+  void removeObjectCodeCacheFile(const char* filename, size_t file_size) {
+    remove(filename);
+    disk_cache_size_ -= file_size;
+    disk_cache_files_qty_ -= 1;
+    updateCacheInfoFile();
+  }
+
+  void updateCacheInfoFile() {
+
+    //TODO: Fix the tracking or find another way to track. Is not working properly yet.
+    //Reads the disk cache info
+    std::string cache_info_filename = "cache.info";
+    llvm::SmallString<128>cache_info = cache_dir_;
+    llvm::sys::path::append(cache_info, cache_info_filename);
+
+    std::fstream cache_info_file;
+    cache_info_file.open(cache_info.c_str(), std::ios::out);
+
+    if (!cache_info_file) {
+      ARROW_LOG(DEBUG) << "[DEBUG][CACHE-LOG]: Can not find the cache.info file!";
+      cache_info_file.close();
+    } else {
+      cache_info_file << "disk-usage=" << std::to_string(disk_cache_size_) << std::endl;
+      cache_info_file << "number-of-files=" << std::to_string(disk_cache_files_qty_) << std::endl;
+      cache_info_file.close();
+      ARROW_LOG(DEBUG) << "[DEBUG][CACHE-LOG]: Updated cache.info file!";
+    }
   }
 
   void clearCacheDisk() {
@@ -301,5 +373,7 @@ struct hasher {
   std::unordered_map<key_type, std::pair<size_t, typename list_type::iterator>,
       hasher> size_map_;
   llvm::SmallString<128> cache_dir_;
+  size_t disk_cache_size_ = 0;
+  size_t disk_cache_files_qty_ = 0;
 };
 }  // namespace gandiva
