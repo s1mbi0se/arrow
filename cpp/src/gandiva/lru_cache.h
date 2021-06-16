@@ -563,9 +563,13 @@ struct hasher {
   void checkDiskSpace() {
     auto disk_info = boost::filesystem::space(cache_dir_.c_str());
 
-    if (disk_space_capactiy_ > disk_reserved_space_) {
-      throw std::invalid_argument( "The disk space reserved is smaller than the disk cache capacity!" );
+    auto disk_space_ten_percent = static_cast<size_t>(round(disk_info.available * 0.10));
+
+    if (disk_space_ten_percent < disk_reserved_space_) {
+      disk_reserved_space_ = disk_space_ten_percent;
+      disk_space_capactiy_ = std::min(disk_space_capactiy_, static_cast<size_t>(round(disk_info.available * 0.90)));
     }
+
     ARROW_LOG(DEBUG) << "[DEBUG][CACHE-LOG]: Disk total space capacity: " << disk_info.capacity << " bytes.";
     ARROW_LOG(DEBUG) << "[DEBUG][CACHE-LOG]: Disk total space available: " << disk_info.available << " bytes.";
     ARROW_LOG(DEBUG) << "[DEBUG][CACHE-LOG]: Disk space available to cache: " << disk_space_capactiy_ - disk_cache_size_<< " bytes.";
