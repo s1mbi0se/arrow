@@ -41,6 +41,8 @@ class TestObjectCache : public ::testing::Test {
   void SetUp() {
     pool_ = arrow::default_memory_pool();
     setenv("GANDIVA_CACHE_SIZE", "5120", 1);
+    setenv("GANDIVA_DISK_CAPACITY_SIZE", "10240", 1);
+    setenv("GANDIVA_DISK_RESERVED_SIZE", "20480", 1);
     // Setup arrow log severity threshold to debug level.
     arrow::util::ArrowLog::StartArrowLog("", arrow::util::ArrowLogLevel::ARROW_DEBUG);
   }
@@ -293,7 +295,7 @@ TEST_F(TestObjectCache, TestFilterObjectCache) {
 
   std::shared_ptr<Filter> filter1;
   auto status = Filter::Make(schema, condition_less_than_10, configuration, &filter1);
-  ASSERT_EQ(1432, filter1->GetUsedCacheSize());
+  ASSERT_EQ(4976, filter1->GetUsedCacheSize());
   ASSERT_FALSE(filter1->GetCompiledFromCache());
   ASSERT_OK(status);
 
@@ -301,7 +303,7 @@ TEST_F(TestObjectCache, TestFilterObjectCache) {
   status = Filter::Make(schema, condition_greater_than_5, configuration, &filter2);
   ASSERT_OK(status);
   ASSERT_FALSE(filter1->GetCompiledFromCache());
-  ASSERT_EQ(2864, filter2->GetUsedCacheSize());
+  ASSERT_EQ(5056, filter2->GetUsedCacheSize());
 
   filter1.reset();
   filter2.reset();
@@ -310,12 +312,12 @@ TEST_F(TestObjectCache, TestFilterObjectCache) {
   status = Filter::Make(schema, condition_less_than_10, configuration, &cached_filter1);
   ASSERT_OK(status);
   ASSERT_TRUE(cached_filter1->GetCompiledFromCache());
-  ASSERT_EQ(2864, cached_filter1->GetUsedCacheSize());
+  ASSERT_EQ(5056, cached_filter1->GetUsedCacheSize());
 
   cached_filter1.reset();
 
   std::shared_ptr<Filter> dummy_filter; // just to get the used cache by the filter.
-  ASSERT_EQ(2864, dummy_filter->GetUsedCacheSize());
+  ASSERT_EQ(5056, dummy_filter->GetUsedCacheSize());
 }
 
 TEST_F(TestObjectCache, TestFilterObjectCacheEvict) {
@@ -362,7 +364,7 @@ TEST_F(TestObjectCache, TestFilterObjectCacheEvict) {
   auto status = Filter::Make(schema, condition_add_less_than_10, configuration, &filter1);
   ASSERT_OK(status);
   if(suite_test) {
-    ASSERT_EQ(2864, filter1->GetUsedCacheSize());
+    ASSERT_EQ(5056, filter1->GetUsedCacheSize());
     ASSERT_TRUE(filter1->GetCompiledFromCache());
   } else {
     ASSERT_EQ(1432, filter1->GetUsedCacheSize());

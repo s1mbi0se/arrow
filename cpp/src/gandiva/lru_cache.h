@@ -17,18 +17,21 @@
 
 #pragma once
 
-#include <iostream>
+#include <llvm/Support/MemoryBuffer.h>
+
+#include <boost/any.hpp>
+#include <boost/filesystem.hpp>
 #include <fstream>
+#include <iostream>
 #include <list>
 #include <map>
 #include <unordered_map>
 #include <utility>
-#include <llvm/Support/MemoryBuffer.h>
-#include <boost/filesystem.hpp>
+
+#include "arrow/util/logging.h"
+#include "arrow/util/optional.h"
 #include "llvm/Support/FileSystem.h"
 #include "llvm/Support/Path.h"
-#include "arrow/util/optional.h"
-#include "arrow/util/logging.h"
 
 // modified from boost LRU cache -> the boost cache supported only an
 // ordered map.
@@ -50,44 +53,22 @@ struct hasher {
       std::unordered_map<key_type, std::pair<value_type, typename list_type::iterator>,
                          hasher>;
 
-  explicit LruCache(size_t capacity) : cache_capacity_(capacity) {
+  explicit LruCache(size_t capacity, size_t disk_capacity,  size_t reserved) : cache_capacity_(capacity) {
+
+    disk_reserved_space_ = reserved;
+    disk_space_capactiy_ = disk_capacity;
     llvm::sys::fs::current_path(cache_dir_);
     llvm::sys::path::append(cache_dir_, "cache");
-    std::cout << "Cache dir path: " << std::string(cache_dir_) << std::endl;
+    ARROW_LOG(DEBUG) << "[DEBUG][CACHE-LOG]: Cache dir path: " << std::string(cache_dir_);
 
-    //Reads the disk cache info
-    std::string cache_info_filename = "cache.info";
-    llvm::SmallString<128>cache_info = cache_dir_;
-    llvm::sys::path::append(cache_info, cache_info_filename);
+    //checkDiskSpace();
+    verifyCacheDir();
+    checkDiskSpace();
 
-    std::fstream cache_info_file;
-    cache_info_file.open(cache_info.c_str(), std::ios::in);
-
-    if (!cache_info_file) {
-      ARROW_LOG(DEBUG) << "[DEBUG][CACHE-LOG]: Can not find the cache.info file!";
-      cache_info_file.close();
-
-      // create the cache.info file
-      cache_info_file.open(cache_info.c_str(), std::ios::out);
-      cache_info_file << "disk-usage=0" << std::endl;
-      cache_info_file << "number-of-files=0" << std::endl;
-      cache_info_file.close();
-    } else {
-      std::string disk_usage_str;
-      std::string disk_number_of_files_str;
-
-      cache_info_file >> disk_usage_str;
-      cache_info_file >> disk_number_of_files_str;
-
-      disk_cache_size_ = std::stoul(disk_usage_str.substr(disk_usage_str.find("=")+1));
-      disk_cache_files_qty_ = std::stoul(disk_number_of_files_str.substr(disk_number_of_files_str.find("=")+1));
-
-      ARROW_LOG(DEBUG) << "[DEBUG][CACHE-LOG]: Initial disk usage: " <<
-          std::to_string(disk_cache_size_) << " bytes.";
-      ARROW_LOG(DEBUG) << "[DEBUG][CACHE-LOG]: Initial disk number of files: " <<
-                       std::to_string(disk_cache_files_qty_) << ".";
-
-    }
+    ARROW_LOG(DEBUG) << "[DEBUG][CACHE-LOG]: Initial disk usage: " <<
+                     std::to_string(disk_cache_size_) << " bytes.";
+    ARROW_LOG(DEBUG) << "[DEBUG][CACHE-LOG]: Initial disk number of files: " <<
+                     std::to_string(disk_cache_files_qty_) << ".";
 
   }
 
@@ -134,7 +115,7 @@ struct hasher {
         evitObjectSafely(object_cache_size);
       }
 
-
+      //auto casted_value = boost::any_cast<int>(value);
 
       // insert the new item
       lru_list_.push_front(key);
@@ -293,9 +274,16 @@ struct hasher {
   }
 
   void saveObjectToCacheDir(key_type& key, const value_type value) {
-    std::string obj_file_name = "obj-" + std::to_string(key.Hash()) + ".cache";
+    std::string obj_file_name = key.Type() + "-" + key.getUuidString() + ".cache";
+
     llvm::SmallString<128>obj_cache_file = cache_dir_;
     llvm::sys::path::append(obj_cache_file, obj_file_name);
+
+    size_t new_cache_size = value->getBufferSize() + disk_cache_size_;
+    if (new_cache_size >= disk_space_capactiy_) {
+      ARROW_LOG(DEBUG) << "Cache directory is full, it will be freed some space!";
+      freeCacheDir(value->getBufferSize());
+    }
 
 
     if (!llvm::sys::fs::exists(cache_dir_.str()) && llvm::sys::fs::create_directory(cache_dir_.str())) {
@@ -303,8 +291,6 @@ struct hasher {
       return;
     }
 
-    //TODO: implement a disk memory tracking. NOTE: first thought was to build a similar one
-    // to the actual in memory track.
     if (!llvm::sys::fs::exists(obj_cache_file.str())) {
       // This file isn't in our disk, so we need to save it to the disk!
       std::error_code ErrStr;
@@ -313,7 +299,12 @@ struct hasher {
       disk_cache_size_ +=  value->getBufferSize();
       disk_cache_files_qty_ += 1;
       CachedObjectFile.close();
+
+      std::pair<std::string, size_t> file_and_size = std::make_pair(obj_file_name, value->getBufferSize());
+      cached_files_map_[key.getUuidString()] = file_and_size;
+
       updateCacheInfoFile();
+      updateCacheListFile();
     } else {
       std::cout << "File " << obj_file_name << " already exists." << std::endl;
     }
@@ -322,25 +313,33 @@ struct hasher {
   }
 
   void removeObjectCodeCacheFile(const char* filename, size_t file_size) {
-    remove(filename);
+
     disk_cache_size_ -= file_size;
-    disk_cache_files_qty_ -= 1;
+    disk_cache_files_qty_ = disk_cache_files_qty_ - 1;
+    std::string file = splitDirPath(filename, "/").back();
+    std::string uuid_string = file.substr(file.find("-")+1, file.find("."));
+    uuid_string = uuid_string.substr(0, uuid_string.find("."));
+    cached_files_map_.erase(uuid_string);
+
+    remove(filename);
+
     updateCacheInfoFile();
+    updateCacheListFile();
   }
 
   void updateCacheInfoFile() {
 
-    //TODO: Fix the tracking or find another way to track. Is not working properly yet.
     //Reads the disk cache info
     std::string cache_info_filename = "cache.info";
     llvm::SmallString<128>cache_info = cache_dir_;
     llvm::sys::path::append(cache_info, cache_info_filename);
 
     std::fstream cache_info_file;
+
     cache_info_file.open(cache_info.c_str(), std::ios::out);
 
     if (!cache_info_file) {
-      ARROW_LOG(DEBUG) << "[DEBUG][CACHE-LOG]: Can not find the cache.info file!";
+      ARROW_LOG(DEBUG) << "[DEBUG][CACHE-LOG]: Can not find the cache.info file while updating!";
       cache_info_file.close();
     } else {
       cache_info_file << "disk-usage=" << std::to_string(disk_cache_size_) << std::endl;
@@ -348,6 +347,202 @@ struct hasher {
       cache_info_file.close();
       ARROW_LOG(DEBUG) << "[DEBUG][CACHE-LOG]: Updated cache.info file!";
     }
+  }
+
+  void updateCacheListFile() {
+    //Reads the disk cache list
+    std::string cache_list_filename = "cache.list";
+    llvm::SmallString<128>cache_list = cache_dir_;
+    llvm::sys::path::append(cache_list, cache_list_filename);
+
+    std::fstream cache_list_file;
+
+    cache_list_file.open(cache_list.c_str(), std::ios::in);
+
+    if (!cache_list_file) {
+      ARROW_LOG(DEBUG) << "[DEBUG][CACHE-LOG]: Can not find the cache.list file while updating!";
+      cache_list_file.close();
+    } else {
+      std::string line;
+      int n_of_lines = 0;
+
+      while(std::getline(cache_list_file, line)){
+        ++n_of_lines;
+      }
+
+      for (int i = 0; i < n_of_lines; ++i) {
+        std::string filename_and_size;
+
+        cache_list_file >> filename_and_size;
+
+        if (filename_and_size != "") {
+          std::string filename = filename_and_size.substr(0, filename_and_size.find("_"));
+          std::string size_string = filename_and_size.substr(filename_and_size.find("_")+1);
+          std::string uuid_string = filename.substr(filename.find("-")+1, filename.find("."));
+
+          if (size_string != "") {
+            size_t size = std::stoul(size_string);
+            std::pair<std::string, size_t> file_pair = std::make_pair(filename, size);
+            cached_files_map_[uuid_string] = file_pair;
+          }
+        }
+
+      }
+
+      cache_list_file.close();
+    }
+
+    cache_list_file.open(cache_list.c_str(), std::ios::out);
+
+    if (!cache_list_file) {
+      ARROW_LOG(DEBUG) << "[DEBUG][CACHE-LOG]: Can not find the cache.list file while updating!";
+      cache_list_file.close();
+    } else {
+
+      for (auto& item : cached_files_map_) {
+        std::string file_name = item.second.first;
+        size_t file_size = item.second.second;
+        cache_list_file << file_name << "_" << file_size << std::endl;
+      }
+
+      ARROW_LOG(DEBUG) << "[DEBUG][CACHE-LOG]: Updated cache.list file!";
+      cache_list_file.close();
+    }
+  }
+
+  void verifyCacheDir() {
+    auto dir_iterator = boost::filesystem::directory_iterator(cache_dir_.c_str());
+    size_t file_count = 0;
+    size_t size_count = 0;
+    for (auto& entry : dir_iterator) {
+      auto entry_path = entry.path().string();
+      std::string filename = splitDirPath(entry_path, "/").back();
+      std::string uuid_string = filename.substr(filename.find("-")+1);
+      uuid_string = uuid_string.substr(0, uuid_string.find("."));
+      auto entry_extension = entry_path.substr(entry_path.find(".")+1);
+      if (entry_extension == "cache")
+      {
+        ++file_count;
+        size_count += boost::filesystem::file_size(entry_path);
+        std::pair<std::string, size_t> file_pair = std::make_pair(filename, boost::filesystem::file_size(entry_path));
+        cached_files_map_[uuid_string] = file_pair;
+      }
+    }
+
+    //Reads the disk cache info
+    std::string cache_info_filename = "cache.info";
+    llvm::SmallString<128>cache_info = cache_dir_;
+    llvm::sys::path::append(cache_info, cache_info_filename);
+    std::fstream cache_info_file;
+    cache_info_file.open(cache_info.c_str(), std::ios::in);
+
+    if (!cache_info_file) {
+      ARROW_LOG(DEBUG) << "[DEBUG][CACHE-LOG]: Can not find the cache.info file!";
+      cache_info_file.close();
+
+      // create the cache.info file
+      cache_info_file.open(cache_info.c_str(), std::ios::out);
+      cache_info_file << "disk-usage=0" << std::endl;
+      cache_info_file << "number-of-files=0" << std::endl;
+      cache_info_file.close();
+    } else {
+      std::string disk_usage_str;
+      std::string disk_number_of_files_str;
+
+      cache_info_file >> disk_usage_str;
+      cache_info_file >> disk_number_of_files_str;
+
+      auto disk_cache_size_string = disk_usage_str.substr(disk_usage_str.find("=")+1);
+
+      if (disk_cache_size_string == "") {
+        disk_cache_size_string = "0";
+      }
+
+      auto disk_cache_size_holder = std::stoul(disk_cache_size_string);
+
+      auto disk_cache_files_qty_string = disk_number_of_files_str.substr(disk_number_of_files_str.find("=")+1);
+
+      if (disk_cache_files_qty_string == "") {
+        disk_cache_files_qty_string = "0";
+      }
+
+      auto disk_cache_files_qty_holder = std::stoul(disk_cache_files_qty_string);
+
+      if (disk_cache_size_holder != size_count || disk_cache_files_qty_holder != file_count) {
+        cache_info_file.close();
+        cache_info_file.open(cache_info.c_str(), std::ios::out);
+        cache_info_file << "disk-usage=" << std::to_string(size_count) << std::endl;
+        cache_info_file << "number-of-files=" << std::to_string(file_count) << std::endl;
+        cache_info_file.close();
+        disk_cache_size_ = size_count;
+        disk_cache_files_qty_ = file_count;
+      } else {
+        disk_cache_size_ = disk_cache_size_holder;
+        disk_cache_files_qty_ = disk_cache_files_qty_holder;
+        cache_info_file.close();
+      }
+    }
+    std::string cache_list_filename = "cache.list";
+    llvm::SmallString<128>cache_list = cache_dir_;
+    llvm::sys::path::append(cache_list, cache_list_filename);
+    std::fstream cache_list_file;
+    cache_list_file.open(cache_list.c_str(), std::ios::out);
+
+    if (!cache_list_file){
+      ARROW_LOG(DEBUG) << "[DEBUG][CACHE-LOG]: Can not find, or create, the cache.list file!";
+      cache_list_file.close();
+    } else {
+      for (auto& item : cached_files_map_) {
+        std::string file_name = item.second.first;
+        size_t file_size = item.second.second;
+        cache_list_file << file_name << "_" << file_size << std::endl;
+      }
+      ARROW_LOG(DEBUG) << "[DEBUG][CACHE-LOG]: Updated cache.list file!";
+      cache_list_file.close();
+    }
+  }
+
+  std::vector<std::string> splitDirPath(std::string s, std::string delimiter) {
+    size_t pos_start = 0, pos_end, delim_len = delimiter.length();
+    std::string token;
+    std::vector<std::string> res;
+
+    while ((pos_end = s.find (delimiter, pos_start)) != std::string::npos) {
+      token = s.substr (pos_start, pos_end - pos_start);
+      pos_start = pos_end + delim_len;
+      res.push_back (token);
+    }
+
+    res.push_back (s.substr (pos_start));
+    return res;
+  }
+
+  void freeCacheDir(size_t size) {
+    while (disk_space_capactiy_ < disk_cache_size_ + size) {
+      std::pair<llvm::SmallString<128>, size_t> file_pair = getLargerFilePathInsideCache();
+      llvm::SmallString<128> file = file_pair.first;
+      size_t file_size = file_pair.second;
+
+      removeObjectCodeCacheFile(file.c_str(), file_size);
+    }
+  }
+
+  std::pair<llvm::SmallString<128>, size_t> getLargerFilePathInsideCache(){
+    std::string larger_file;
+    size_t larger_size = 0;
+    for ( auto& item: cached_files_map_) {
+      auto file_size = item.second.second;
+      auto file = item.second.first;
+      if(file_size > larger_size) {
+        larger_size = file_size;
+        larger_file = file;
+      }
+    }
+    llvm::SmallString<128>obj_file = cache_dir_;
+    llvm::sys::path::append(obj_file, larger_file);
+
+    std::pair<llvm::SmallString<128>, size_t> file_pair = std::make_pair(obj_file, larger_size);
+    return file_pair;
   }
 
   void clearCacheDisk() {
@@ -365,6 +560,17 @@ struct hasher {
     }
   }
 
+  void checkDiskSpace() {
+    auto disk_info = boost::filesystem::space(cache_dir_.c_str());
+
+    if (disk_space_capactiy_ > disk_reserved_space_) {
+      throw std::invalid_argument( "The disk space reserved is smaller than the disk cache capacity!" );
+    }
+    ARROW_LOG(DEBUG) << "[DEBUG][CACHE-LOG]: Disk total space capacity: " << disk_info.capacity << " bytes.";
+    ARROW_LOG(DEBUG) << "[DEBUG][CACHE-LOG]: Disk total space available: " << disk_info.available << " bytes.";
+    ARROW_LOG(DEBUG) << "[DEBUG][CACHE-LOG]: Disk space available to cache: " << disk_space_capactiy_ - disk_cache_size_<< " bytes.";
+  }
+
  private:
   map_type map_;
   list_type lru_list_;
@@ -375,5 +581,9 @@ struct hasher {
   llvm::SmallString<128> cache_dir_;
   size_t disk_cache_size_ = 0;
   size_t disk_cache_files_qty_ = 0;
+  size_t disk_reserved_space_ = 0;
+  size_t disk_space_capactiy_ = 0;
+  size_t disk_cache_space_available_ = 0;
+  std::unordered_map<std::string, std::pair<std::string, size_t>> cached_files_map_;
 };
 }  // namespace gandiva
