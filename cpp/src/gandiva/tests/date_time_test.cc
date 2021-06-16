@@ -563,7 +563,7 @@ TEST_F(TestProjector, TestCastTimestampFromInt64) {
                                   MillisSince(epoch, 2016, 2, 29, 23, 59, 59, 59),
                                   MillisSince(epoch, 2016, 1, 30, 1, 15, 20, 0),
                                   MillisSince(epoch, 2017, 2, 3, 23, 15, 20, 0),
-                                  MillisSince(epoch, 1950, 12, 30, 22, 50, 11, 0)};
+                                  MillisSince(epoch, 1970, 12, 30, 22, 50, 11, 0)};
 
   auto array0 = MakeArrowArrayInt64(f0_data, validity);
 
@@ -571,7 +571,7 @@ TEST_F(TestProjector, TestCastTimestampFromInt64) {
                                          MillisSince(epoch, 2016, 2, 29, 23, 59, 59, 59),
                                          MillisSince(epoch, 2016, 1, 30, 1, 15, 20, 0),
                                          MillisSince(epoch, 2017, 2, 3, 23, 15, 20, 0),
-                                         MillisSince(epoch, 1950, 12, 30, 22, 50, 11, 0)};
+                                         MillisSince(epoch, 1970, 12, 30, 22, 50, 11, 0)};
 
   // expected output
   auto exp_output = MakeArrowTypeArray<arrow::TimestampType, int64_t>(
