@@ -153,10 +153,17 @@ Status Projector::Make(SchemaPtr schema, const ExpressionVector& exprs,
       std::move(cache_unique);*/
 
   // Cache ptrs to use when caching only the expressions
-  static std::unique_ptr<Cache<BaseCacheKey, std::shared_ptr<llvm::MemoryBuffer>>> cache_unique =
+  /*static std::unique_ptr<Cache<BaseCacheKey, std::shared_ptr<llvm::MemoryBuffer>>> cache_unique =
       std::make_unique<Cache<BaseCacheKey, std::shared_ptr<llvm::MemoryBuffer>>>();
   static std::shared_ptr<Cache<BaseCacheKey, std::shared_ptr<llvm::MemoryBuffer>>> shared_cache =
-      std::move(cache_unique);
+      std::move(cache_unique);*/
+
+  std::shared_ptr<Cache<BaseCacheKey, std::shared_ptr<llvm::MemoryBuffer>>> shared_cache = LLVMGenerator::GetCache();
+
+  /*static std::unique_ptr<Cache<BaseCacheKey, std::shared_ptr<boost::any>>> cache_unique =
+      std::make_unique<Cache<BaseCacheKey, std::shared_ptr<boost::any>>>();
+  static std::shared_ptr<Cache<BaseCacheKey, std::shared_ptr<boost::any>>> shared_cache =
+      std::move(cache_unique);*/
 
   static std::unique_ptr<Cache<BaseCacheKey, std::shared_ptr<EvalFunc>>> expr_cache_unique =
       std::make_unique<Cache<BaseCacheKey, std::shared_ptr<EvalFunc>>>();

@@ -24,7 +24,8 @@
 
 #include "arrow/util/macros.h"
 #include "expr_decomposer.h"
-#include "gandiva//base_object_cache.h"
+#include "gandiva/base_cache_key.h"
+#include "gandiva/base_object_cache.h"
 #include "gandiva/annotator.h"
 #include "gandiva/compiled_expr.h"
 #include "gandiva/configuration.h"
@@ -50,6 +51,8 @@ class GANDIVA_EXPORT LLVMGenerator {
   /// \brief Factory method to initialize the generator.
   static Status Make(std::shared_ptr<Configuration> config,
                      std::unique_ptr<LLVMGenerator>* llvm_generator);
+
+  static std::shared_ptr<Cache<BaseCacheKey, std::shared_ptr<llvm::MemoryBuffer>>> GetCache();
 
   /// \brief Build the code for the expression trees for default mode. Each
   /// element in the vector represents an expression tree

@@ -30,6 +30,7 @@
 #include "gandiva/expr_validator.h"
 #include "gandiva/llvm_generator.h"
 #include "gandiva/selection_vector_impl.h"
+#include "gandiva/base_cache_key.h"
 
 namespace gandiva {
 
@@ -112,21 +113,33 @@ Status Filter::Make(SchemaPtr schema, ConditionPtr condition,
   }*/
 
   // Cache ptrs to use when caching only the obj code
-  static std::unique_ptr<Cache<FilterCacheKey, std::shared_ptr<llvm::MemoryBuffer>>> cache_unique =
+  /*static std::unique_ptr<Cache<FilterCacheKey, std::shared_ptr<llvm::MemoryBuffer>>> cache_unique =
       std::make_unique<Cache<FilterCacheKey, std::shared_ptr<llvm::MemoryBuffer>>>();
   static std::shared_ptr<Cache<FilterCacheKey, std::shared_ptr<llvm::MemoryBuffer>>> shared_cache =
-      std::move(cache_unique);
+      std::move(cache_unique);*/
+
+  /*static std::unique_ptr<Cache<BaseCacheKey, std::shared_ptr<llvm::MemoryBuffer>>> cache_unique =
+      std::make_unique<Cache<BaseCacheKey, std::shared_ptr<llvm::MemoryBuffer>>>();
+  static std::shared_ptr<Cache<BaseCacheKey, std::shared_ptr<llvm::MemoryBuffer>>> shared_cache =
+      std::move(cache_unique);*/
+
+  std::shared_ptr<Cache<BaseCacheKey, std::shared_ptr<llvm::MemoryBuffer>>> shared_cache = LLVMGenerator::GetCache();
 
   // FilterCacheKey ptrs to use when caching only the obj code
-  FilterCacheKey cache_key(schema, configuration, *(condition.get()));
+  /*FilterCacheKey cache_key(schema, configuration, *(condition.get()));
   std::unique_ptr<FilterCacheKey> projector_key = std::make_unique<FilterCacheKey>(cache_key);
-  std::shared_ptr<FilterCacheKey> shared_projector_key = std::move(projector_key);
+  std::shared_ptr<FilterCacheKey> shared_projector_key = std::move(projector_key);*/
+
+  FilterCacheKey filter_key(schema, configuration, *(condition.get()));
+  BaseCacheKey cache_key(filter_key, "filter");
+  std::unique_ptr<BaseCacheKey> base_cache_key = std::make_unique<BaseCacheKey>(cache_key);
+  std::shared_ptr<BaseCacheKey> shared_base_cache_key = std::move(base_cache_key);
 
   // LLVM ObjectCache flag;
   bool llvm_flag = false;
 
   std::shared_ptr<llvm::MemoryBuffer> prev_cached_obj;
-  prev_cached_obj = shared_cache->GetObjectCode(*shared_projector_key);
+  prev_cached_obj = shared_cache->GetObjectCode(*shared_base_cache_key);
 
   // to use when caching only the obj code
   // Verify if previous filter obj code was cached
@@ -137,7 +150,7 @@ Status Filter::Make(SchemaPtr schema, ConditionPtr condition,
     //ARROW_LOG(INFO) << "[OBJ-CACHE-LOG]: Object code WAS NOT already cached!";
   }
 
-  BaseObjectCache<FilterCacheKey> obj_cache(shared_cache, shared_projector_key);
+  BaseObjectCache<BaseCacheKey> obj_cache(shared_cache, shared_base_cache_key);
 
   // Build LLVM generator, and generate code for the specified expression
   std::unique_ptr<LLVMGenerator> llvm_gen;
