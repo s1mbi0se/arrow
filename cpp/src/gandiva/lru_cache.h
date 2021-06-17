@@ -32,6 +32,7 @@
 #include "arrow/util/optional.h"
 #include "llvm/Support/FileSystem.h"
 #include "llvm/Support/Path.h"
+#include "generated/gandiva_cache_generated.h"
 
 // modified from boost LRU cache -> the boost cache supported only an
 // ordered map.
@@ -69,7 +70,6 @@ struct hasher {
                      std::to_string(disk_cache_size_) << " bytes.";
     ARROW_LOG(DEBUG) << "[DEBUG][CACHE-LOG]: Initial disk number of files: " <<
                      std::to_string(disk_cache_files_qty_) << ".";
-
   }
 
   ~LruCache() {}
@@ -196,8 +196,24 @@ struct hasher {
       // value not in cache
       if (llvm::sys::fs::exists(obj_cache_file.str())) {
         // This file is in our disk!
-        auto obj_cache_buffer = llvm::MemoryBuffer::getFile(obj_cache_file, -1, true, false);
-        std::shared_ptr<llvm::MemoryBuffer> obj_cache_buffer_shared = std::move(obj_cache_buffer.get());
+        std::ifstream cached_file(obj_cache_file.c_str(), std::ios::binary);
+        std::vector<unsigned char> buffer_from_file(std::istreambuf_iterator<char>(cached_file), {});
+
+        auto flatbuffer_cache = gandiva::cache::GetCache(static_cast<void*>(buffer_from_file.data()));
+
+        // Read the obj_code bytes
+        auto flatbuffer_obj_code = flatbuffer_cache->object_code()->Data();
+        std::string flatbuffer_obj_code_string((char*) flatbuffer_obj_code);
+
+        auto obj_string_ref = llvm::StringRef(flatbuffer_obj_code_string);
+        auto obj_string_id = llvm::StringRef(splitDirPath(obj_cache_file.c_str(), "/").back());
+
+        llvm::MemoryBufferRef obj_mem_buf_ref(obj_string_ref, obj_string_id);
+
+        //auto obj_cache_buffer = llvm::MemoryBuffer::getFile(obj_cache_file, -1, true, false);
+        std::unique_ptr<llvm::MemoryBuffer> obj_cache_buffer = llvm::MemoryBuffer::getMemBufferCopy(obj_mem_buf_ref.getBuffer(), obj_mem_buf_ref.getBufferIdentifier());
+        std::shared_ptr<llvm::MemoryBuffer> obj_cache_buffer_shared = std::move(obj_cache_buffer);
+
         reinsertObject(key, obj_cache_buffer_shared, obj_cache_buffer_shared->getBufferSize());
 
         removeObjectCodeCacheFile(obj_cache_file.c_str(), obj_cache_buffer_shared->getBufferSize());
@@ -280,6 +296,11 @@ struct hasher {
     llvm::sys::path::append(obj_cache_file, obj_file_name);
 
     size_t new_cache_size = value->getBufferSize() + disk_cache_size_;
+    if (value->getBufferSize() >= disk_space_capactiy_) {
+      ARROW_LOG(DEBUG) << "The cache file is to big!";
+      return;
+    }
+
     if (new_cache_size >= disk_space_capactiy_) {
       ARROW_LOG(DEBUG) << "Cache directory is full, it will be freed some space!";
       freeCacheDir(value->getBufferSize());
@@ -293,12 +314,35 @@ struct hasher {
 
     if (!llvm::sys::fs::exists(obj_cache_file.str())) {
       // This file isn't in our disk, so we need to save it to the disk!
+      auto value_ref_string = value->getBuffer().str();
+      int8_t buffer[value_ref_string.length()];
+      std::copy(value_ref_string.begin(), value_ref_string.end(), buffer);
+
+      auto flatbuffer_obj_code = flatbuffer_builder_.CreateVector(buffer, value_ref_string.size());
+
+      auto flatbuffer_cache = gandiva::cache::CreateCache(flatbuffer_builder_, flatbuffer_obj_code);
+
+      flatbuffer_builder_.Finish(flatbuffer_cache);
+
+      uint8_t *pre_file_buffer = flatbuffer_builder_.GetBufferPointer();
+      size_t pre_file_buffer_size = flatbuffer_builder_.GetSize();
+
+      std::ofstream cache_file(obj_cache_file.c_str(), std::ios::binary | std::ios::ate);
+      cache_file.write((char *) pre_file_buffer, pre_file_buffer_size);
+      cache_file.close();
+
+      std::ifstream read_cache_file(obj_cache_file.c_str(), std::ios::binary | std::ios::ate);
+      auto size_to_add = read_cache_file.tellg();
+      read_cache_file.close();
+
+
       std::error_code ErrStr;
-      llvm::raw_fd_ostream CachedObjectFile(obj_cache_file.c_str(), ErrStr);
-      CachedObjectFile << value->getBuffer();
-      disk_cache_size_ +=  value->getBufferSize();
+      // llvm::raw_fd_ostream CachedObjectFile(obj_cache_file.c_str(), ErrStr);
+      //CachedObjectFile << value->getBuffer();
+      //disk_cache_size_ +=  value->getBufferSize();
+      disk_cache_size_ += size_to_add;
       disk_cache_files_qty_ += 1;
-      CachedObjectFile.close();
+      //CachedObjectFile.close();
 
       std::pair<std::string, size_t> file_and_size = std::make_pair(obj_file_name, value->getBufferSize());
       cached_files_map_[key.getUuidString()] = file_and_size;
@@ -589,5 +633,6 @@ struct hasher {
   size_t disk_space_capactiy_ = 0;
   size_t disk_cache_space_available_ = 0;
   std::unordered_map<std::string, std::pair<std::string, size_t>> cached_files_map_;
+  flatbuffers::FlatBufferBuilder flatbuffer_builder_;
 };
 }  // namespace gandiva
