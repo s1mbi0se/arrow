@@ -3,7 +3,6 @@
 namespace gandiva.cache;
 
 table Cache {
-    expressions:[int64];
     object_code:[byte];
 }
 
