@@ -140,15 +140,29 @@ Status Projector::Make(SchemaPtr schema, const ExpressionVector& exprs,
   ARROW_RETURN_IF(configuration == nullptr,
                   Status::Invalid("Configuration cannot be null"));
 
-
   std::shared_ptr<Cache<BaseCacheKey, std::shared_ptr<llvm::MemoryBuffer>>> shared_cache = LLVMGenerator::GetCache();
 
+  // Cache instance for the expressions
+  size_t expr_cache_size = 32 * 1024 * 1024; // bytes or 32 MiB;
+  static std::unique_ptr<Cache<BaseCacheKey, std::shared_ptr<EvalFunc>>> expr_cache_unique =
+      std::make_unique<Cache<BaseCacheKey, std::shared_ptr<EvalFunc>>>(expr_cache_size);
+  static std::shared_ptr<Cache<BaseCacheKey, std::shared_ptr<EvalFunc>>> expr_cache_shared_cache =
+      std::move(expr_cache_unique);
 
   // Cache key ptrs to use when caching only the obj code
   ProjectorCacheKey projector_key(schema, configuration, exprs, selection_vector_mode);
   BaseCacheKey cache_key(projector_key, "projector");
   std::unique_ptr<BaseCacheKey> base_cache_key = std::make_unique<BaseCacheKey>(cache_key);
   std::shared_ptr<BaseCacheKey> shared_base_cache_key = std::move(base_cache_key);
+
+  std::vector<std::shared_ptr<BaseCacheKey>> expr_cache_keys;
+  expr_cache_keys.reserve(exprs.size());
+  for (auto expr : exprs) {
+    std::unique_ptr<BaseCacheKey> expr_cache_key =
+        std::make_unique<BaseCacheKey>(schema, expr,"expression");
+    std::shared_ptr<BaseCacheKey> expr_shared_key = std::move(expr_cache_key);
+    expr_cache_keys.push_back(std::move(expr_shared_key));
+  }
 
   // LLVM ObjectCache flag to use when caching only the obj code
   bool llvm_flag = false;
@@ -177,8 +191,9 @@ Status Projector::Make(SchemaPtr schema, const ExpressionVector& exprs,
   for (auto& expr : exprs) {
     ARROW_RETURN_NOT_OK(expr_validator.Validate(expr));
   }
-  ARROW_RETURN_NOT_OK(llvm_gen->Build(exprs, selection_vector_mode, obj_cache)); // to use when caching only the obj code
-
+  //ARROW_RETURN_NOT_OK(llvm_gen->Build(exprs, selection_vector_mode)); //-> old llvm build to use when caching the entire module
+  //ARROW_RETURN_NOT_OK(llvm_gen->Build(exprs, selection_vector_mode, obj_cache)); // to use when caching only the obj code
+  ARROW_RETURN_NOT_OK(llvm_gen->Build(exprs, selection_vector_mode, obj_cache, expr_cache_keys, expr_cache_shared_cache));
   // save the output field types. Used for validation at Evaluate() time.
   std::vector<FieldPtr> output_fields;
   output_fields.reserve(exprs.size());

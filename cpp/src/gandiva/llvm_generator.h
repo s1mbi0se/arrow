@@ -86,6 +86,48 @@ class GANDIVA_EXPORT LLVMGenerator {
     return Status::OK();
   }
 
+  /// \brief Build the code for the expression trees for default mode with a LLVM ObjectCache.
+  /// Each element in the vector represents an expression tree
+  template <class KeyType, class CacheType>
+  Status Build(const ExpressionVector& exprs, SelectionVector::Mode mode,
+               GandivaObjectCache<KeyType>& obj_cache,
+               std::vector<std::shared_ptr<KeyType>> expr_cache_keys,
+               CacheType& cache){
+    selection_vector_mode_ = mode;
+
+    for (auto& expr : exprs) {
+      auto output = annotator_.AddOutputFieldDescriptor(expr->result());
+      ARROW_RETURN_NOT_OK(Add(expr, output));
+    }
+
+    ARROW_RETURN_NOT_OK(engine_->SetLLVMObjectCache(obj_cache));
+
+    // Compile and inject into the process' memory the generated function.
+    ARROW_RETURN_NOT_OK(engine_->FinalizeModule());
+
+    for (size_t i = 0; i < compiled_exprs_.size(); ++i) {
+      auto ir_fn = compiled_exprs_[i]->GetIRFunction(mode);
+
+      std::shared_ptr<EvalFunc> cached_expr = cache->GetModule(*expr_cache_keys[i]);
+      if(cached_expr != nullptr) {
+        ARROW_LOG(DEBUG) << "[DEBUG][EXPR-CACHE-LOG]: The expression WAS already cached!";
+        compiled_exprs_[i]->SetJITFunction(selection_vector_mode_, *cached_expr);
+      } else {
+        ARROW_LOG(DEBUG) << "[DEBUG][EXPR-CACHE-LOG]: The expression WAS NOT already cached!";
+        auto jit_fn = reinterpret_cast<EvalFunc>(engine_->CompiledFunction(ir_fn));
+        compiled_exprs_[i]->SetJITFunction(selection_vector_mode_, jit_fn);
+        std::shared_ptr<EvalFunc> to_cache_jit = std::make_shared<EvalFunc>(jit_fn);
+        cache->PutModule(*expr_cache_keys[i], to_cache_jit);
+        ARROW_LOG(DEBUG) << "[DEBUG][EXPR-CACHE-LOG]: The expression has been cached!";
+      }
+
+      ARROW_LOG(DEBUG) << "[DEBUG][EXPR-CACHE-LOG]: " << cache->toString();
+    }
+
+    return Status::OK();
+  }
+
+
   /// \brief Build the code for the expression trees for default mode. Each
   /// element in the vector represents an expression tree
   Status Build(const ExpressionVector& exprs) {
