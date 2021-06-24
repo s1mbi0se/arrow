@@ -770,7 +770,7 @@ gdv_date64 castDATE_timestamp(gdv_timestamp timestamp_in_millis) {
  * The seconds and subseconds are optional.
  * Format is hours:minutes[:seconds.millis]
  */
-int32_t castTIME_utf8(int64_t context, const char* input, int32_t length) {
+gdv_time32 castTIME_utf8(int64_t context, const char* input, int32_t length) {
   using gandiva::TimeFields;
   using std::chrono::hours;
   using std::chrono::milliseconds;
@@ -852,7 +852,7 @@ gdv_time32 castTIME_timestamp(gdv_timestamp timestamp_in_millis) {
 }
 
 // Gets an arbitrary number and return the number of milliseconds since midnight
-int32_t castTIME_int32(int32_t int_val) {
+gdv_time32 castTIME_int32(int32_t int_val) {
   if (int_val < 0) {
     return 0;
   }
