@@ -837,7 +837,7 @@ gdv_time32 castTIME_utf8(int64_t context, const char* input, int32_t length) {
   auto time_info = hours(input_hours) + minutes(input_minutes) + seconds(input_seconds) +
                    milliseconds(input_subseconds);
 
-  return static_cast<int32_t>(time_info.count());
+  return static_cast<gdv_time32>(time_info.count());
 }
 
 gdv_time32 castTIME_timestamp(gdv_timestamp timestamp_in_millis) {
@@ -857,7 +857,7 @@ gdv_time32 castTIME_int32(int32_t int_val) {
     return 0;
   }
 
-  auto millis_since_midnight = static_cast<int32_t>(int_val % MILLIS_IN_DAY);
+  auto millis_since_midnight = static_cast<gdv_time32>(int_val % MILLIS_IN_DAY);
 
   return millis_since_midnight;
 }
