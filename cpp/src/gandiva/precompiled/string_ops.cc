@@ -2108,7 +2108,7 @@ const char* parse_url_utf8_utf8(gdv_int64 context, const char* url, gdv_int64 ur
   if (memcmp(part_to_extract, protocol_key, part_len) == 0) {
     if (protocol_sub) {
       *out_len = protocol_sub - url;
-    }else {
+    } else {
       *out_len = 0;
     }
   }
@@ -2117,7 +2117,7 @@ const char* parse_url_utf8_utf8(gdv_int64 context, const char* url, gdv_int64 ur
   if (memcmp(part_to_extract, user_info_key, part_len) == 0) {
     if (user_info_sub) {
       *out_len = user_info_sub - user_string;
-    }else {
+    } else {
       *out_len = 0;
     }
     // try to allocate memory for the response
@@ -2234,8 +2234,8 @@ const char* parse_url_utf8_utf8(gdv_int64 context, const char* url, gdv_int64 ur
     auto ref_sub = file_sub + strlen(ref_start);
     if (ref_sub) {
       *out_len = strlen(ref_sub);
-    }else {
-      *out_len=0;
+    } else {
+      *out_len = 0;
     }
     // try to allocate memory for the response
     char* ret = reinterpret_cast<char*>(gdv_fn_context_arena_malloc(context, *out_len));
@@ -2255,8 +2255,7 @@ const char* parse_url_utf8_utf8(gdv_int64 context, const char* url, gdv_int64 ur
   char* ret = reinterpret_cast<char*>(gdv_fn_context_arena_malloc(context, *out_len));
 
   if (ret == nullptr) {
-    gdv_fn_context_set_error_msg(context,
-                                 "Could not allocate memory for output string");
+    gdv_fn_context_set_error_msg(context, "Could not allocate memory for output string");
     *out_len = 0;
     return "";
   }
@@ -2275,11 +2274,12 @@ const char* parse_url_query_key_utf8_utf8(gdv_int64 context, const char* url,
     return "";
   }
 
-  auto query_str = parse_url_utf8_utf8(context, url, url_len, part_to_extract, part_len, out_len);
+  auto query_str =
+      parse_url_utf8_utf8(context, url, url_len, part_to_extract, part_len, out_len);
   auto key_value = strstr(query_str, query_key);
   if (key_value) {
     auto value = strstr(key_value, "=");
-    if (value){
+    if (value) {
       *out_len = value - key_value;
       // try to allocate memory for the response
       char* ret = reinterpret_cast<char*>(gdv_fn_context_arena_malloc(context, *out_len));
@@ -2291,9 +2291,9 @@ const char* parse_url_query_key_utf8_utf8(gdv_int64 context, const char* url,
         return "";
       }
 
-      memcpy(ret, value+1, *out_len);
+      memcpy(ret, value + 1, *out_len);
       return ret;
-    }else {
+    } else {
       *out_len = 0;
     }
   }
