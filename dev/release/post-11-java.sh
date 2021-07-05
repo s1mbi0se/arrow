@@ -45,23 +45,6 @@ pushd ${archive_name}
 git clone https://github.com/apache/arrow-testing.git testing
 git clone https://github.com/apache/parquet-testing.git cpp/submodules/parquet-testing
 
-# build the jni bindings similarly like the 01-perform.sh does
-mkdir -p cpp/java-build
-pushd cpp/java-build
-cmake \
-  -DARROW_DATASET=ON \
-  -DARROW_FILESYSTEM=ON \
-  -DARROW_GANDIVA_JAVA=ON \
-  -DARROW_GANDIVA=ON \
-  -DARROW_JNI=ON \
-  -DARROW_ORC=ON \
-  -DARROW_PARQUET=ON \
-  -DCMAKE_BUILD_TYPE=release \
-  -G Ninja \
-  ..
-ninja
-popd
-
 # go in the java subfolder
 pushd java
 # stage the artifacts using both the apache-release and arrow-jni profiles
