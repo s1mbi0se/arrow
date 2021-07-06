@@ -27,6 +27,7 @@
     "glog",
     "grpc",
     "gtest",
+    "jsoncons",
     "lz4",
     "openssl",
     "orc",
