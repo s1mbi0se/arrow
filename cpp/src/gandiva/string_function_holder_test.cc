@@ -28,8 +28,6 @@
 namespace gandiva {
 
 class TestLikeHolder : public ::testing::Test {
-  RE2::Options regex_op;
-
  public:
   FunctionNode BuildLike(std::string pattern) {
     auto field = std::make_shared<FieldNode>(arrow::field("in", arrow::utf8()));
