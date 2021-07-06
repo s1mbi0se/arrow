@@ -16,9 +16,9 @@
 // under the License.
 
 // String functions
-#include "arrow/util/value_parsing.h"
 #include <jsoncons/json.hpp>
 #include <jsoncons_ext/jsonpath/jsonpath.hpp>
+#include "arrow/util/value_parsing.h"
 
 extern "C" {
 
@@ -2202,7 +2202,6 @@ FORCE_INLINE
 const char* get_json_object(gdv_int64 context, const char* search_text,
                             gdv_int32 search_text_len, const char* json_text,
                             gdv_int32 json_text_len, gdv_int32* out_len) {
-
   std::string search_string(search_text);
 
   // if there is no json string return null
@@ -2221,7 +2220,7 @@ const char* get_json_object(gdv_int64 context, const char* search_text,
   jsoncons::json result;
 
   try {
-    result = jsoncons::jsonpath::json_query(json,search_string);
+    result = jsoncons::jsonpath::json_query(json, search_string);
   } catch (...) {
     gdv_fn_context_set_error_msg(context, "Invalid jsonpath search query");
     *out_len = 0;

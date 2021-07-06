@@ -1761,7 +1761,8 @@ TEST(TestStringOps, TestGetJsonObject) {
   gdv_int32 out_len = 0;
   const char* out_str;
 
-  const char* json_str = "[\n"
+  const char* json_str =
+      "[\n"
       "  {\n"
       "    \"id\": 1,\n"
       "    \"name\": \"John Doe\",\n"
@@ -1779,21 +1780,24 @@ TEST(TestStringOps, TestGetJsonObject) {
   const char* search_str1 = "$.*.id";
   gdv_int32 search_len1 = strlen(search_str1);
 
-  out_str = get_json_object(ctx_ptr, search_str1, search_len1, json_str, json_len, &out_len);
+  out_str =
+      get_json_object(ctx_ptr, search_str1, search_len1, json_str, json_len, &out_len);
   EXPECT_EQ(std::string(out_str, out_len), "[1,2]");
   EXPECT_FALSE(ctx.has_error());
 
   const char* search_str2 = "$.1.name";
   gdv_int32 search_len2 = strlen(search_str1);
 
-  out_str = get_json_object(ctx_ptr, search_str2, search_len2, json_str, json_len, &out_len);
+  out_str =
+      get_json_object(ctx_ptr, search_str2, search_len2, json_str, json_len, &out_len);
   EXPECT_EQ(std::string(out_str, out_len), "[\"Mary Doe\"]");
   EXPECT_FALSE(ctx.has_error());
 
   const char* search_str3 = "$.1.favorite_fruits[0]";
   gdv_int32 search_len3 = strlen(search_str1);
 
-  out_str = get_json_object(ctx_ptr, search_str3, search_len3, json_str, json_len, &out_len);
+  out_str =
+      get_json_object(ctx_ptr, search_str3, search_len3, json_str, json_len, &out_len);
   EXPECT_EQ(std::string(out_str, out_len), "[\"grapefruit\"]");
   EXPECT_FALSE(ctx.has_error());
 
@@ -1802,14 +1806,16 @@ TEST(TestStringOps, TestGetJsonObject) {
   const char* search_str4 = "$.1.favorite_fruits[0]";
   gdv_int32 search_len4 = strlen(search_str1);
 
-  out_str = get_json_object(ctx_ptr, search_str4, search_len4, json_empty_str, json_empty_str_len, &out_len);
+  out_str = get_json_object(ctx_ptr, search_str4, search_len4, json_empty_str,
+                            json_empty_str_len, &out_len);
   EXPECT_EQ(std::string(out_str, out_len), "");
   EXPECT_FALSE(ctx.has_error());
 
   const char* search_str5 = "";
   gdv_int32 search_len5 = strlen(search_str1);
 
-  out_str = get_json_object(ctx_ptr, search_str5, search_len5, json_str, json_len, &out_len);
+  out_str =
+      get_json_object(ctx_ptr, search_str5, search_len5, json_str, json_len, &out_len);
   EXPECT_EQ(std::string(out_str, out_len), "");
   EXPECT_THAT(ctx.get_error(), ::testing::HasSubstr("Invalid jsonpath search query"));
   ctx.Reset();
@@ -1817,7 +1823,8 @@ TEST(TestStringOps, TestGetJsonObject) {
   const char* search_str6 = "$.";
   gdv_int32 search_len6 = strlen(search_str6);
 
-  out_str = get_json_object(ctx_ptr, search_str6, search_len6, json_str, json_len, &out_len);
+  out_str =
+      get_json_object(ctx_ptr, search_str6, search_len6, json_str, json_len, &out_len);
   EXPECT_EQ(std::string(out_str, out_len), "");
   EXPECT_THAT(ctx.get_error(), ::testing::HasSubstr("Invalid jsonpath search query"));
   ctx.Reset();
