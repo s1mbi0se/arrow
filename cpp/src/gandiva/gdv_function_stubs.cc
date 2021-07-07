@@ -816,7 +816,16 @@ const char* gdv_fn_get_json_object(gdv_int64 context, const char* search_text,
     return "";
   }
 
-  jsoncons::json json = jsoncons::json::parse(json_text);
+  jsoncons::json json;
+
+  try {
+    json = jsoncons::json::parse(json_text);
+  } catch (...) {
+    gdv_fn_context_set_error_msg(context, "Invalid json text");
+    *out_len = 0;
+    return "";
+  }
+
   jsoncons::json result;
 
   try {
