@@ -1624,6 +1624,8 @@ TEST_F(TestProjector, TestGetJsonObject) {
   EXPECT_TRUE(status.ok()) << status.message();
 
   // Create a row-batch with some sample data
+  int num_records = 2;
+
   const char* json_str1 =
       "[\n"
       "  {\n"
@@ -1640,19 +1642,19 @@ TEST_F(TestProjector, TestGetJsonObject) {
 
   // TODO: investigate why projector is concatenating both search_text and json_text
 
-  //  const char* json_str2 =
-  //      "[\n"
-  //      "  {\n"
-  //      "    \"id\": 1,\n"
-  //      "    \"name\": \"John Doe\",\n"
-  //      "    \"favorite_fruits\": [\"mango\", \"banana\"]\n"
-  //      "  },\n"
-  //      "    {\n"
-  //      "    \"id\": 2,\n"
-  //      "    \"name\": \"Mary Doe\",\n"
-  //      "    \"favorite_fruits\": [\"grapefruit\", \"pineapple\"]\n"
-  //      "  }\n"
-  //      "]";
+    const char* json_str2 =
+        "[\n"
+        "  {\n"
+        "    \"id\": 1,\n"
+        "    \"name\": \"John Doe\",\n"
+        "    \"favorite_fruits\": [\"mango\", \"banana\"]\n"
+        "  },\n"
+        "    {\n"
+        "    \"id\": 2,\n"
+        "    \"name\": \"Mary Doe\",\n"
+        "    \"favorite_fruits\": [\"grapefruit\", \"pineapple\"]\n"
+        "  }\n"
+        "]";
 
   //  const char* json_str3 =
   //      "[\n"
@@ -1668,20 +1670,11 @@ TEST_F(TestProjector, TestGetJsonObject) {
   //      "  }\n"
   //      "]";
 
-  int num_records = 1;
-
-  //  auto array0 = MakeArrowArrayUtf8({"$.*.id", "$.1.name"}, {true, true});
-  //  auto array1 = MakeArrowArrayUtf8({json_str1, json_str2}, {true, true});
-  //
-  //  // expected output
-  //  auto exp_get_json_object =
-  //      MakeArrowArrayUtf8({"[1,2]", "[\"Mary Doe\"]"}, {true, true});
-
-  auto array0 = MakeArrowArrayUtf8({"$.*.id"}, {true, true});
-  auto array1 = MakeArrowArrayUtf8({json_str1}, {true, true});
+  auto array0 = MakeArrowArrayUtf8({"$.*.id", "$.1.name"}, {true, true});
+  auto array1 = MakeArrowArrayUtf8({json_str1, json_str2}, {true, true});
 
   // expected output
-  auto exp_get_json_object = MakeArrowArrayUtf8({"[1,2]"}, {true, true});
+  auto exp_get_json_object = MakeArrowArrayUtf8({"[1,2]", "[\"Mary Doe\"]"}, {true, true});
 
   // prepare input record batch
   auto in = arrow::RecordBatch::Make(schema, num_records, {array0, array1});
