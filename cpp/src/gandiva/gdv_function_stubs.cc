@@ -802,7 +802,8 @@ GANDIVA_EXPORT
 const char* gdv_fn_get_json_object(gdv_int64 context, const char* search_text,
                                    gdv_int32 search_len, const char* json_text,
                                    gdv_int32 json_len, gdv_int32* out_len) {
-  std::string search_string(search_text);
+  std::string search_string(search_text, search_len);
+  std::string json_string(json_text, json_len);
 
   // if there is no json string return null
   if (json_len == 0 || json_text == nullptr) {
@@ -819,7 +820,7 @@ const char* gdv_fn_get_json_object(gdv_int64 context, const char* search_text,
   jsoncons::json json;
 
   try {
-    json = jsoncons::json::parse(json_text);
+    json = jsoncons::json::parse(json_string);
   } catch (...) {
     gdv_fn_context_set_error_msg(context, "Invalid json text");
     *out_len = 0;
