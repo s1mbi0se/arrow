@@ -241,6 +241,9 @@ gdv_int64 bitwise_xor_int64_int64(gdv_int64 in1, gdv_int64 in2);
 gdv_int32 bitwise_not_int32(gdv_int32);
 gdv_int64 bitwise_not_int64(gdv_int64);
 
+gdv_int64 factorial_int32(gdv_int64 context, gdv_int32 value);
+gdv_int64 factorial_int64(gdv_int64 context, gdv_int64 value);
+
 gdv_float64 power_float64_float64(gdv_float64, gdv_float64);
 
 gdv_float64 log_int32_int32(gdv_int64 context, gdv_int32 base, gdv_int32 value);
