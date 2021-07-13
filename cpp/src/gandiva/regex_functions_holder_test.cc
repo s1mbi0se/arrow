@@ -15,7 +15,7 @@
 // specific language governing permissions and limitations
 // under the License.
 
-#include "gandiva/string_function_holder.h"
+#include "gandiva/regex_functions_holder.h"
 
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
