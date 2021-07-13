@@ -339,7 +339,7 @@ CAST_NUMERIC_FROM_STRING(double, arrow::DoubleType, FLOAT8)
 
 #undef CAST_NUMERIC_FROM_STRING
 
-#define GDV_FN_CAST_VARLEN_TYPE_FROM_TYPE(IN_TYPE, CAST_NAME, ARROW_TYPE)      \
+#define GDV_FN_CAST_VARLEN_TYPE_FROM_TYPE(IN_TYPE, CAST_NAME, ARROW_TYPE)         \
   GANDIVA_EXPORT                                                                  \
   const char* gdv_fn_cast##CAST_NAME##_##IN_TYPE##_int64(                         \
       int64_t context, gdv_##IN_TYPE value, int64_t len, int32_t * out_len) {     \
@@ -415,7 +415,7 @@ CAST_NUMERIC_FROM_STRING(double, arrow::DoubleType, FLOAT8)
   GDV_FN_CAST_VARLEN_TYPE_FROM_TYPE(int32, VARLEN_TYPE, Int32Type)   \
   GDV_FN_CAST_VARLEN_TYPE_FROM_TYPE(int64, VARLEN_TYPE, Int64Type)   \
   GDV_FN_CAST_VARLEN_TYPE_FROM_TYPE(date64, VARLEN_TYPE, Date64Type) \
-  GDV_FN_CAST_VARLEN_TYPE_FROM_REAL(float32, VARLEN_TYPE, FloatType)  \
+  GDV_FN_CAST_VARLEN_TYPE_FROM_REAL(float32, VARLEN_TYPE, FloatType) \
   GDV_FN_CAST_VARLEN_TYPE_FROM_REAL(float64, VARLEN_TYPE, DoubleType)
 
 CAST_VARLEN_TYPE_FROM_NUMERIC(VARCHAR)
@@ -979,14 +979,14 @@ void ExportedStubFunctions::AddMappings(Engine* engine) const {
       "gdv_fn_castVARCHAR_int64_int64", types->i8_ptr_type() /*return_type*/, args,
       reinterpret_cast<void*>(gdv_fn_castVARCHAR_int64_int64));
 
-    // gdv_fn_castVARCHAR_milliseconds
-    args = {types->i64_type(),       // int64_t execution_context
-            types->i64_type(),       // gdv_date64 value
-            types->i64_type(),       // int64_t len
-            types->i32_ptr_type()};  // int32_t* out_len
-    engine->AddGlobalMappingForFunc(
-            "gdv_fn_castVARCHAR_date64_int64", types->i8_ptr_type() /*return_type*/, args,
-            reinterpret_cast<void*>(gdv_fn_castVARCHAR_date64_int64));
+  // gdv_fn_castVARCHAR_milliseconds
+  args = {types->i64_type(),       // int64_t execution_context
+          types->i64_type(),       // gdv_date64 value
+          types->i64_type(),       // int64_t len
+          types->i32_ptr_type()};  // int32_t* out_len
+  engine->AddGlobalMappingForFunc(
+      "gdv_fn_castVARCHAR_date64_int64", types->i8_ptr_type() /*return_type*/, args,
+      reinterpret_cast<void*>(gdv_fn_castVARCHAR_date64_int64));
 
   // gdv_fn_castVARCHAR_float32_int64
   args = {types->i64_type(),       // int64_t execution_context
