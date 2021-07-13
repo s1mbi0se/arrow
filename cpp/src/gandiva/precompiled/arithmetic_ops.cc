@@ -157,7 +157,7 @@ IS_TRUE_OR_FALSE_BOOL(isfalse, boolean, !)
 
 #define IS_TRUE_OR_FALSE_NUMERIC(NAME, TYPE, OP) \
   FORCE_INLINE                                   \
-  gdv_boolean NAME##_##TYPE(gdv_##TYPE in) { return OP (in != 0 ? true : false); }
+  gdv_boolean NAME##_##TYPE(gdv_##TYPE in) { return OP(in != 0 ? true : false); }
 
 NUMERIC_TYPES(IS_TRUE_OR_FALSE_NUMERIC, istrue, +)
 NUMERIC_TYPES(IS_TRUE_OR_FALSE_NUMERIC, isfalse, !)
@@ -185,11 +185,11 @@ NUMERIC_TYPES(IS_TRUE_OR_FALSE_NUMERIC, isfalse, !)
   DATE_FUNCTION(INNER)                    \
   INNER(boolean)
 
-#define NVL(TYPE)                                                                   \
-  FORCE_INLINE                                                                      \
-  gdv_##TYPE nvl_##TYPE##_##TYPE(gdv_##TYPE in, gdv_boolean is_valid_in,            \
-                                 gdv_##TYPE replace, gdv_boolean is_valid_value) {  \
-    return (is_valid_in ? in : replace);                                            \
+#define NVL(TYPE)                                                                  \
+  FORCE_INLINE                                                                     \
+  gdv_##TYPE nvl_##TYPE##_##TYPE(gdv_##TYPE in, gdv_boolean is_valid_in,           \
+                                 gdv_##TYPE replace, gdv_boolean is_valid_value) { \
+    return (is_valid_in ? in : replace);                                           \
   }
 
 NUMERIC_BOOL_DATE_FUNCTION(NVL)

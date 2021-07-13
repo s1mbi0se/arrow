@@ -823,11 +823,9 @@ const char* castVARCHAR_timestamp_int64(gdv_int64 context, gdv_timestamp in,
   return ret;
 }
 
-#define IS_NULL(TYPE)                                        \
-  FORCE_INLINE                                               \
-  bool isnull_##TYPE(gdv_##TYPE in, gdv_boolean is_valid) {  \
-    return !is_valid;                                        \
-  }
+#define IS_NULL(TYPE) \
+  FORCE_INLINE        \
+  bool isnull_##TYPE(gdv_##TYPE in, gdv_boolean is_valid) { return !is_valid; }
 IS_NULL(day_time_interval)
 IS_NULL(month_interval)
 

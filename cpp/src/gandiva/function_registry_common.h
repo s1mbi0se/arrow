@@ -37,7 +37,6 @@ using arrow::boolean;
 using arrow::date32;
 using arrow::date64;
 using arrow::day_time_interval;
-using arrow::month_interval;
 using arrow::float32;
 using arrow::float64;
 using arrow::int16;
