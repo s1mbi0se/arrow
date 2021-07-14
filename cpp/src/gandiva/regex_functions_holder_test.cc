@@ -278,7 +278,7 @@ TEST_F(TestExtractHolder, TestNoMatches) {
   EXPECT_FALSE(execution_context_.has_error());
 
   // Pattern to match only numbers
-  status = ExtractHolder::Make(R"(^\d+$)", &extract_holder);
+  status = ExtractHolder::Make(R"(\d+)", &extract_holder);
   EXPECT_EQ(status.ok(), true) << status.message();
 
   auto& extract_numbers = *extract_holder;
