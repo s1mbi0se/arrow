@@ -24,102 +24,89 @@
 
 #include "arrow/util/hash_util.h"
 #include "arrow/util/logging.h"
-
+#include "gandiva/base_cache_key.h"
+#include "gandiva/base_object_cache.h"
 #include "gandiva/cache.h"
 #include "gandiva/expr_validator.h"
 #include "gandiva/llvm_generator.h"
 
 namespace gandiva {
 
-class ProjectorCacheKey {
- public:
-  ProjectorCacheKey(SchemaPtr schema, std::shared_ptr<Configuration> configuration,
-                    ExpressionVector expression_vector, SelectionVector::Mode mode)
-      : schema_(schema), configuration_(configuration), mode_(mode), uniqifier_(0) {
-    static const int kSeedValue = 4;
-    size_t result = kSeedValue;
-    for (auto& expr : expression_vector) {
-      std::string expr_as_string = expr->ToString();
-      expressions_as_strings_.push_back(expr_as_string);
-      arrow::internal::hash_combine(result, expr_as_string);
-      UpdateUniqifier(expr_as_string);
-    }
-    arrow::internal::hash_combine(result, static_cast<size_t>(mode));
-    arrow::internal::hash_combine(result, configuration->Hash());
-    arrow::internal::hash_combine(result, schema_->ToString());
-    arrow::internal::hash_combine(result, uniqifier_);
-    hash_code_ = result;
+
+ProjectorCacheKey::ProjectorCacheKey(SchemaPtr schema, std::shared_ptr<Configuration> configuration,
+                  ExpressionVector expression_vector, SelectionVector::Mode mode)
+    : schema_(schema), configuration_(configuration), mode_(mode), uniqifier_(0) {
+  static const int kSeedValue = 4;
+  size_t result = kSeedValue;
+  for (auto& expr : expression_vector) {
+    std::string expr_as_string = expr->ToString();
+    expressions_as_strings_.push_back(expr_as_string);
+    arrow::internal::hash_combine(result, expr_as_string);
+    UpdateUniqifier(expr_as_string);
+  }
+  arrow::internal::hash_combine(result, static_cast<size_t>(mode));
+  arrow::internal::hash_combine(result, configuration->Hash());
+  arrow::internal::hash_combine(result, schema_->ToString());
+  arrow::internal::hash_combine(result, uniqifier_);
+  hash_code_ = result;
+}
+
+bool ProjectorCacheKey::operator==(const ProjectorCacheKey& other) const {
+  // arrow schema does not overload equality operators.
+  if (!(schema_->Equals(*other.schema().get(), true))) {
+    return false;
   }
 
-  std::size_t Hash() const { return hash_code_; }
-
-  bool operator==(const ProjectorCacheKey& other) const {
-    // arrow schema does not overload equality operators.
-    if (!(schema_->Equals(*other.schema().get(), true))) {
-      return false;
-    }
-
-    if (*configuration_ != *other.configuration_) {
-      return false;
-    }
-
-    if (expressions_as_strings_ != other.expressions_as_strings_) {
-      return false;
-    }
-
-    if (mode_ != other.mode_) {
-      return false;
-    }
-
-    if (uniqifier_ != other.uniqifier_) {
-      return false;
-    }
-    return true;
+  if (*configuration_ != *other.configuration_) {
+    return false;
   }
 
-  bool operator!=(const ProjectorCacheKey& other) const { return !(*this == other); }
-
-  SchemaPtr schema() const { return schema_; }
-
-  std::string ToString() const {
-    std::stringstream ss;
-    // indent, window, indent_size, null_rep and skip new lines.
-    arrow::PrettyPrintOptions options{0, 10, 2, "null", true};
-    DCHECK_OK(PrettyPrint(*schema_.get(), options, &ss));
-
-    ss << "Expressions: [";
-    bool first = true;
-    for (auto& expr : expressions_as_strings_) {
-      if (first) {
-        first = false;
-      } else {
-        ss << ", ";
-      }
-
-      ss << expr;
-    }
-    ss << "]";
-    return ss.str();
+  if (expressions_as_strings_ != other.expressions_as_strings_) {
+    return false;
   }
 
- private:
-  void UpdateUniqifier(const std::string& expr) {
-    if (uniqifier_ == 0) {
-      // caching of expressions with re2 patterns causes lock contention. So, use
-      // multiple instances to reduce contention.
-      if (expr.find(" like(") != std::string::npos) {
-        uniqifier_ = std::hash<std::thread::id>()(std::this_thread::get_id()) % 16;
-      }
-    }
+  if (mode_ != other.mode_) {
+    return false;
   }
 
-  const SchemaPtr schema_;
-  const std::shared_ptr<Configuration> configuration_;
-  SelectionVector::Mode mode_;
-  std::vector<std::string> expressions_as_strings_;
-  size_t hash_code_;
-  uint32_t uniqifier_;
-};
+  if (uniqifier_ != other.uniqifier_) {
+    return false;
+  }
+  return true;
+}
+
+std::string ProjectorCacheKey::ToString() const {
+  std::stringstream ss;
+  // indent, window, indent_size, null_rep and skip new lines.
+  arrow::PrettyPrintOptions options{0, 10, 2, "null", true};
+  DCHECK_OK(PrettyPrint(*schema_.get(), options, &ss));
+
+  ss << "Expressions: [";
+  bool first = true;
+  for (auto& expr : expressions_as_strings_) {
+    if (first) {
+      first = false;
+    } else {
+      ss << ", ";
+    }
+
+    ss << expr;
+  }
+  ss << "]";
+  return ss.str();
+}
+
+
+void ProjectorCacheKey::UpdateUniqifier(const std::string& expr) {
+  if (uniqifier_ == 0) {
+    // caching of expressions with re2 patterns causes lock contention. So, use
+    // multiple instances to reduce contention.
+    if (expr.find(" like(") != std::string::npos) {
+      uniqifier_ = std::hash<std::thread::id>()(std::this_thread::get_id()) % 16;
+    }
+  }
+}
+
 
 Projector::Projector(std::unique_ptr<LLVMGenerator> llvm_generator, SchemaPtr schema,
                      const FieldVector& output_fields,
@@ -154,13 +141,77 @@ Status Projector::Make(SchemaPtr schema, const ExpressionVector& exprs,
                   Status::Invalid("Configuration cannot be null"));
 
   // see if equivalent projector was already built
-  static Cache<ProjectorCacheKey, std::shared_ptr<Projector>> cache;
-  ProjectorCacheKey cache_key(schema, configuration, exprs, selection_vector_mode);
-  std::shared_ptr<Projector> cached_projector = cache.GetModule(cache_key);
+  //static Cache<ProjectorCacheKey, std::shared_ptr<llvm::MemoryBuffer>> cache;
+
+  // to use when caching the entire module
+  //static Cache<ProjectorCacheKey, std::shared_ptr<Projector>> cache;
+
+  // Cache ptrs to use when caching only the obj code
+  /*static std::unique_ptr<Cache<ProjectorCacheKey, std::shared_ptr<llvm::MemoryBuffer>>> cache_unique =
+      std::make_unique<Cache<ProjectorCacheKey, std::shared_ptr<llvm::MemoryBuffer>>>();
+  static std::shared_ptr<Cache<ProjectorCacheKey, std::shared_ptr<llvm::MemoryBuffer>>> shared_cache =
+      std::move(cache_unique);*/
+
+  // Cache ptrs to use when caching only the expressions
+  /*static std::unique_ptr<Cache<BaseCacheKey, std::shared_ptr<llvm::MemoryBuffer>>> cache_unique =
+      std::make_unique<Cache<BaseCacheKey, std::shared_ptr<llvm::MemoryBuffer>>>();
+  static std::shared_ptr<Cache<BaseCacheKey, std::shared_ptr<llvm::MemoryBuffer>>> shared_cache =
+      std::move(cache_unique);*/
+
+  std::shared_ptr<Cache<BaseCacheKey, std::shared_ptr<llvm::MemoryBuffer>>> shared_cache = LLVMGenerator::GetCache();
+
+  /*static std::unique_ptr<Cache<BaseCacheKey, std::shared_ptr<boost::any>>> cache_unique =
+      std::make_unique<Cache<BaseCacheKey, std::shared_ptr<boost::any>>>();
+  static std::shared_ptr<Cache<BaseCacheKey, std::shared_ptr<boost::any>>> shared_cache =
+      std::move(cache_unique);*/
+
+  static std::unique_ptr<Cache<BaseCacheKey, std::shared_ptr<EvalFunc>>> expr_cache_unique =
+      std::make_unique<Cache<BaseCacheKey, std::shared_ptr<EvalFunc>>>();
+  static std::shared_ptr<Cache<BaseCacheKey, std::shared_ptr<EvalFunc>>> expr_cache_shared_cache =
+      std::move(expr_cache_unique);
+
+  // Cache key ptrs to use when caching only the obj code
+  /*ProjectorCacheKey cache_key(schema, configuration, exprs, selection_vector_mode);
+  std::unique_ptr<ProjectorCacheKey> projector_key = std::make_unique<ProjectorCacheKey>(cache_key);
+  std::shared_ptr<ProjectorCacheKey> shared_projector_key = std::move(projector_key);*/
+
+  // Cache key ptrs to use when caching only the obj code
+  ProjectorCacheKey projector_key(schema, configuration, exprs, selection_vector_mode);
+  BaseCacheKey cache_key(projector_key, "projector");
+  std::unique_ptr<BaseCacheKey> base_cache_key = std::make_unique<BaseCacheKey>(cache_key);
+  std::shared_ptr<BaseCacheKey> shared_base_cache_key = std::move(base_cache_key);
+
+  std::vector<std::shared_ptr<BaseCacheKey>> expr_cache_keys;
+  expr_cache_keys.reserve(exprs.size());
+  for (auto expr : exprs) {
+    std::unique_ptr<BaseCacheKey> expr_cache_key =
+        std::make_unique<BaseCacheKey>(schema, expr,"expression");
+    std::shared_ptr<BaseCacheKey> expr_shared_key = std::move(expr_cache_key);
+    expr_cache_keys.push_back(std::move(expr_shared_key));
+  }
+
+  // LLVM ObjectCache flag to use when caching only the obj code
+  bool llvm_flag = false;
+
+  // to use when caching the entire module
+  /*std::shared_ptr<Projector> cached_projector = cache.GetModule(cache_key);
   if (cached_projector != nullptr) {
     *projector = cached_projector;
     return Status::OK();
+  }*/
+
+  std::shared_ptr<llvm::MemoryBuffer> prev_cached_obj;
+  prev_cached_obj = shared_cache->GetObjectCode(*shared_base_cache_key);
+
+  // Verify if previous projector obj code was cached
+  if(prev_cached_obj != nullptr) {
+    //ARROW_LOG(INFO) << "[OBJ-CACHE-LOG]: Object code WAS already cached!";
+    llvm_flag = true;
+  } else {
+    //ARROW_LOG(INFO) << "[OBJ-CACHE-LOG]: Object code WAS NOT already cached!";
   }
+
+  BaseObjectCache<BaseCacheKey> obj_cache(shared_cache, shared_base_cache_key);
 
   // Build LLVM generator, and generate code for the specified expressions
   std::unique_ptr<LLVMGenerator> llvm_gen;
@@ -173,9 +224,9 @@ Status Projector::Make(SchemaPtr schema, const ExpressionVector& exprs,
   for (auto& expr : exprs) {
     ARROW_RETURN_NOT_OK(expr_validator.Validate(expr));
   }
-
-  ARROW_RETURN_NOT_OK(llvm_gen->Build(exprs, selection_vector_mode));
-
+  //ARROW_RETURN_NOT_OK(llvm_gen->Build(exprs, selection_vector_mode)); //-> old llvm build to use when caching the entire module
+  //ARROW_RETURN_NOT_OK(llvm_gen->Build(exprs, selection_vector_mode, obj_cache)); // to use when caching only the obj code
+  ARROW_RETURN_NOT_OK(llvm_gen->Build(exprs, selection_vector_mode, obj_cache, expr_cache_keys, expr_cache_shared_cache));
   // save the output field types. Used for validation at Evaluate() time.
   std::vector<FieldPtr> output_fields;
   output_fields.reserve(exprs.size());
@@ -186,7 +237,12 @@ Status Projector::Make(SchemaPtr schema, const ExpressionVector& exprs,
   // Instantiate the projector with the completely built llvm generator
   *projector = std::shared_ptr<Projector>(
       new Projector(std::move(llvm_gen), schema, output_fields, configuration));
-  cache.PutModule(cache_key, *projector);
+  projector->get()->SetCompiledFromCache(llvm_flag);
+
+  //cache.PutModule(cache_key, *projector); // to use when caching the entire module
+  //ARROW_LOG(INFO) << "[CACHE-LOG] " + cache.toString(); // to use when caching the entire module
+  ARROW_LOG(DEBUG) << "[DEBUG][PROJECTOR-CACHE-LOG]: " + shared_cache->toString(); // to use when caching only the obj code
+  used_cache_size_ = shared_cache->getCacheSize();
 
   return Status::OK();
 }
@@ -358,5 +414,20 @@ Status Projector::ValidateArrayDataCapacity(const arrow::ArrayData& array_data,
 }
 
 std::string Projector::DumpIR() { return llvm_generator_->DumpIR(); }
+
+void Projector::SetCompiledFromCache(bool flag) {
+  compiled_from_cache_ = flag;
+}
+
+bool Projector::GetCompiledFromCache() {
+  return compiled_from_cache_;
+}
+
+size_t Projector::GetUsedCacheSize() {
+
+  return used_cache_size_;
+}
+
+size_t Projector::used_cache_size_ = 0;
 
 }  // namespace gandiva

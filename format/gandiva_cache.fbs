@@ -1,0 +1,9 @@
+// Gandiva Cache Schema.
+
+namespace gandiva.cache;
+
+table Cache {
+    object_code:[byte];
+}
+
+root_type Cache;

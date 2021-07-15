@@ -24,6 +24,7 @@
 #include <utility>
 #include <vector>
 
+#include "gandiva/base_object_cache.h"
 #include "gandiva/bitmap_accumulator.h"
 #include "gandiva/decimal_ir.h"
 #include "gandiva/dex.h"
@@ -48,6 +49,15 @@ Status LLVMGenerator::Make(std::shared_ptr<Configuration> config,
   *llvm_generator = std::move(llvmgen_obj);
 
   return Status::OK();
+}
+
+std::shared_ptr<Cache<BaseCacheKey, std::shared_ptr<llvm::MemoryBuffer>>> LLVMGenerator::GetCache() {
+  static std::unique_ptr<Cache<BaseCacheKey, std::shared_ptr<llvm::MemoryBuffer>>> cache_unique =
+      std::make_unique<Cache<BaseCacheKey, std::shared_ptr<llvm::MemoryBuffer>>>();
+  static std::shared_ptr<Cache<BaseCacheKey, std::shared_ptr<llvm::MemoryBuffer>>> shared_cache =
+      std::move(cache_unique);
+
+  return shared_cache;
 }
 
 Status LLVMGenerator::Add(const ExpressionPtr expr, const FieldDescriptorPtr output) {
