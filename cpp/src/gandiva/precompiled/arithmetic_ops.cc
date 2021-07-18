@@ -208,21 +208,17 @@ NUMERIC_FUNCTION(DIVIDE)
 
 #undef DIVIDE
 
-#define POSITIVE(TYPE)                        \
-  FORCE_INLINE                                \
-  gdv_##TYPE positive_##TYPE(gdv_##TYPE in) { \
-    return static_cast<gdv_##TYPE>(in);       \
-  }
+#define POSITIVE(TYPE) \
+  FORCE_INLINE         \
+  gdv_##TYPE positive_##TYPE(gdv_##TYPE in) { return static_cast<gdv_##TYPE>(in); }
 
 NUMERIC_FUNCTION(POSITIVE)
 
 #undef POSITIVE
 
-#define NEGATIVE(TYPE)                        \
-  FORCE_INLINE                                \
-  gdv_##TYPE negative_##TYPE(gdv_##TYPE in) { \
-    return static_cast<gdv_##TYPE>(-1 * in);  \
-  }
+#define NEGATIVE(TYPE) \
+  FORCE_INLINE         \
+  gdv_##TYPE negative_##TYPE(gdv_##TYPE in) { return static_cast<gdv_##TYPE>(-1 * in); }
 
 NUMERIC_FUNCTION(NEGATIVE)
 
