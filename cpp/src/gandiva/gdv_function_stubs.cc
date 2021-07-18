@@ -188,12 +188,12 @@ int32_t gdv_fn_populate_varlen_vector(int64_t context_ptr, int8_t* data_ptr,
 #define CRC_FUNCTION(TYPE)                                                          \
   GANDIVA_EXPORT                                                                    \
   int64_t gdv_fn_crc_32_##TYPE(int64_t ctx, const char *input, int32_t input_len) { \
-  if (input_len < 0) {                                                              \
-    gdv_fn_context_set_error_msg(ctx, "Input length can't be negative");            \
-    return 0;                                                                       \
-  }                                                                                 \
-  return crc32(input, input_len);                                                   \
-}
+    if (input_len < 0) {                                                              \
+      gdv_fn_context_set_error_msg(ctx, "Input length can't be negative");            \
+      return 0;                                                                       \
+    }                                                                                 \
+    return crc32(input, input_len);                                                   \
+  }
 CRC_FUNCTION(utf8)
 CRC_FUNCTION(binary)
 
@@ -1618,9 +1618,8 @@ void ExportedStubFunctions::AddMappings(Engine* engine) const {
       types->i32_type()      // value_length
   };
 
-  engine->AddGlobalMappingForFunc(
-      "gdv_fn_crc_32_utf8", types->i64_type() /*return_type*/, args,
-      reinterpret_cast<void*>(gdv_fn_crc_32_utf8));
+  engine->AddGlobalMappingForFunc("gdv_fn_crc_32_utf8", types->i64_type() /*return_type*/,
+                                  args, reinterpret_cast<void*>(gdv_fn_crc_32_utf8));
 
   // gdv_fn_crc_32_binary
   args = {
@@ -1629,8 +1628,8 @@ void ExportedStubFunctions::AddMappings(Engine* engine) const {
       types->i32_type()      // value_length
   };
 
-  engine->AddGlobalMappingForFunc(
-      "gdv_fn_crc_32_binary", types->i64_type() /*return_type*/, args,
-      reinterpret_cast<void*>(gdv_fn_crc_32_binary));
+  engine->AddGlobalMappingForFunc("gdv_fn_crc_32_binary",
+                                  types->i64_type() /*return_type*/, args,
+                                  reinterpret_cast<void*>(gdv_fn_crc_32_binary));
 }
 }  // namespace gandiva
