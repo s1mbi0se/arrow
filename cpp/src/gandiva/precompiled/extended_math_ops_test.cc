@@ -90,6 +90,28 @@ TEST(TestExtendedMathOps, TestLogWithBase) {
   EXPECT_EQ(context1.has_error(), false);
 }
 
+TEST(TestArithmeticOps, TestRoundHalfToEven) {
+  EXPECT_EQ(round_half_even_float32(2.5), 2);
+  EXPECT_EQ(round_half_even_float32(3.5), 4);
+  EXPECT_EQ(round_half_even_float32(2.1), 2);
+  EXPECT_EQ(round_half_even_float32(3.4), 3);
+
+  EXPECT_EQ(round_half_even_float64(2.5), 2);
+  EXPECT_EQ(round_half_even_float64(3.5), 4);
+  EXPECT_EQ(round_half_even_float64(2.1), 2);
+  EXPECT_EQ(round_half_even_float64(3.4), 3);
+
+  EXPECT_EQ(round_half_even_float32_int32(8.21, 1), 8.2f);
+  EXPECT_EQ(round_half_even_float32_int32(8.35, 1), 8.4f);
+  EXPECT_EQ(round_half_even_float32_int32(3.455, 1), 3.5f);
+  EXPECT_EQ(round_half_even_float32_int32(8.455, 2), 8.46f);
+
+  EXPECT_EQ(round_half_even_float64_int32(8.21, 1), 8.2);
+  EXPECT_EQ(round_half_even_float64_int32(8.35, 1), 8.4);
+  EXPECT_EQ(round_half_even_float64_int32(3.455, 1), 3.5);
+  EXPECT_EQ(round_half_even_float64_int32(8.455, 2), 8.46);
+}
+
 TEST(TestExtendedMathOps, TestRoundDecimal) {
   EXPECT_FLOAT_EQ(round_float32(1234.245f), 1234);
   EXPECT_FLOAT_EQ(round_float32(-11.7892f), -12);

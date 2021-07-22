@@ -220,6 +220,36 @@ ENUMERIC_TYPES_UNARY(DEGREES, float64)
   }
 POWER(float64, float64, float64)
 
+#define ROUND_HALF_EVEN(TYPE)                                        \
+  FORCE_INLINE                                                       \
+  gdv_##TYPE round_half_even_##TYPE(gdv_##TYPE number) {             \
+    gdv_##TYPE rounded = round_##TYPE(number);                       \
+    gdv_##TYPE difference = rounded - number;                        \
+    if ((difference != 0.5) && (difference != -0.5)) return rounded; \
+    if (fmod(rounded, 2.0) == 0.0) return rounded;                   \
+    return static_cast<gdv_##TYPE>(number - difference);             \
+  }
+
+ROUND_HALF_EVEN(float32)
+ROUND_HALF_EVEN(float64)
+
+// rounds half even the number to the given scale
+#define ROUND_HALF_EVEN_DECIMAL_TO_SCALE(TYPE)                                        \
+  FORCE_INLINE                                                                        \
+  gdv_##TYPE round_half_even_##TYPE##_int32(gdv_##TYPE number, gdv_int32 out_scale) { \
+    gdv_float64 scale = get_scale_multiplier(out_scale);                              \
+    gdv_##TYPE scaled_number = number * scale;                                        \
+    gdv_##TYPE rounded = round_float32(scaled_number);                                \
+    gdv_##TYPE difference = rounded - scaled_number;                                  \
+    if ((difference != 0.5) && (difference != -0.5)) return rounded / scale;          \
+    if (fmod(rounded, 2.0) == 0.0) return rounded / scale;                            \
+    return static_cast<gdv_##TYPE>((scaled_number - difference) / scale);             \
+  }
+
+ROUND_HALF_EVEN_DECIMAL_TO_SCALE(float32)
+ROUND_HALF_EVEN_DECIMAL_TO_SCALE(float64)
+
+
 FORCE_INLINE
 gdv_int32 round_int32(gdv_int32 num) { return num; }
 
