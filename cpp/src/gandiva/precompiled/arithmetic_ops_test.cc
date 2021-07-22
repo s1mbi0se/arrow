@@ -101,6 +101,18 @@ TEST(TestArithmeticOps, TestDiv) {
   context.Reset();
 }
 
+TEST(TestArithmeticOps, TestRoundHalfToEven) {
+  EXPECT_EQ(round_half_to_even_float32(2.5), 2);
+  EXPECT_EQ(round_half_to_even_float32(3.5), 4);
+  EXPECT_EQ(round_half_to_even_float32(2.1), 2);
+  EXPECT_EQ(round_half_to_even_float32(3.4), 3);
+
+  EXPECT_EQ(round_half_to_even_float64(2.5), 2);
+  EXPECT_EQ(round_half_to_even_float64(3.5), 4);
+  EXPECT_EQ(round_half_to_even_float64(2.1), 2);
+  EXPECT_EQ(round_half_to_even_float64(3.4), 3);
+}
+
 TEST(TestArithmeticOps, TestBitwiseOps) {
   // bitwise AND
   EXPECT_EQ(bitwise_and_int32_int32(0x0147D, 0x17159), 0x01059);

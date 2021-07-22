@@ -90,6 +90,19 @@ gdv_float64 mod_float64_float64(int64_t context, gdv_float64 x, gdv_float64 y) {
   return fmod(x, y);
 }
 
+#define ROUND_HALF_EVEN(TYPE)                                          \
+  FORCE_INLINE                                                         \
+  gdv_##TYPE round_half_to_even_##TYPE(gdv_##TYPE number) {            \
+    gdv_##TYPE rounded = round_float32(number);                        \
+    gdv_##TYPE difference = rounded - number;                          \
+    if ((difference != 0.5) && (difference != -0.5)) return rounded; \
+    if (fmod(rounded, 2.0) == 0.0) return rounded;                   \
+    return number - difference;                                        \
+  }
+
+ROUND_HALF_EVEN(float32)
+ROUND_HALF_EVEN(float64)
+
 // Relational binary fns : left, right params are same, return is bool.
 #define BINARY_RELATIONAL(NAME, TYPE, OP) \
   FORCE_INLINE                            \
