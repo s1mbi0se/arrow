@@ -210,7 +210,7 @@ NUMERIC_FUNCTION(DIVIDE)
 
 #define POSITIVE(TYPE) \
   FORCE_INLINE         \
-  gdv_##TYPE positive_##TYPE(gdv_##TYPE in) { return static_cast<gdv_##TYPE>(in); }
+  gdv_##TYPE positive_##TYPE(gdv_##TYPE in) { return in; }
 
 NUMERIC_FUNCTION(POSITIVE)
 
