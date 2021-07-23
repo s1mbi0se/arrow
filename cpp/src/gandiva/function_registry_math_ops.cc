@@ -79,8 +79,12 @@ std::vector<NativeFunction> GetMathOpsFunctionRegistry() {
       UNARY_SAFE_NULL_IF_NULL(ceil, {}, decimal128, decimal128),
       UNARY_SAFE_NULL_IF_NULL(floor, {}, decimal128, decimal128),
       UNARY_SAFE_NULL_IF_NULL(round, {}, decimal128, decimal128),
+      UNARY_SAFE_NULL_IF_NULL(bround, {}, float32, float32),
+      UNARY_SAFE_NULL_IF_NULL(bround, {}, float64, float64),
       UNARY_SAFE_NULL_IF_NULL(truncate, {"trunc"}, decimal128, decimal128),
       BINARY_GENERIC_SAFE_NULL_IF_NULL(round, {}, decimal128, int32, decimal128),
+      BINARY_GENERIC_SAFE_NULL_IF_NULL(bround, {}, float32, int32, float32),
+      BINARY_GENERIC_SAFE_NULL_IF_NULL(bround, {}, float64, int32, float64),
       BINARY_GENERIC_SAFE_NULL_IF_NULL(truncate, {"trunc"}, decimal128, int32,
                                        decimal128),
 

@@ -545,6 +545,43 @@ TEST_F(TestProjector, TestFloatLessThan) {
   EXPECT_ARROW_ARRAY_EQUALS(exp, outputs.at(0));
 }
 
+TEST_F(TestProjector, TestRoundEven) {
+  // schema for input fields
+  auto field0 = field("f0", float32());
+  auto field1 = field("f1", int32());
+  auto schema = arrow::schema({field0, field1});
+
+  // output fields
+  auto field_result = field("res", float32());
+
+  // Build expression
+  auto round_expr =
+      TreeExprBuilder::MakeExpression("bround", {field0, field1}, field_result);
+
+  // Build a projector for the expressions.
+  std::shared_ptr<Projector> projector;
+  auto status = Projector::Make(schema, {round_expr}, TestConfiguration(), &projector);
+  EXPECT_TRUE(status.ok());
+
+  // Create a row-batch with some sample data
+  int num_records = 3;
+  auto array0 = MakeArrowArrayFloat32({8.35f, 8.21f, 8.455f}, {true, true, true});
+  auto array1 = MakeArrowArrayInt32({1, 1, 2}, {true, true, true});
+  // expected output
+  auto exp = MakeArrowArrayFloat32({8.4f, 8.2f, 8.46f}, {true, true, true});
+
+  // prepare input record batch
+  auto in_batch = arrow::RecordBatch::Make(schema, num_records, {array0, array1});
+
+  // Evaluate expression
+  arrow::ArrayVector outputs;
+  status = projector->Evaluate(*in_batch, pool_, &outputs);
+  EXPECT_TRUE(status.ok());
+
+  // Validate results
+  EXPECT_ARROW_ARRAY_EQUALS(exp, outputs.at(0));
+}
+
 TEST_F(TestProjector, TestIsNotNull) {
   // schema for input fields
   auto field0 = field("f0", float32());

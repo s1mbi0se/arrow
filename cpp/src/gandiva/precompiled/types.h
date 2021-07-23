@@ -156,10 +156,10 @@ gdv_int32 round_int32_int32(gdv_int32 number, gdv_int32 precision);
 gdv_int64 round_int64_int32(gdv_int64 number, gdv_int32 precision);
 gdv_int32 round_int32(gdv_int32);
 gdv_int64 round_int64(gdv_int64);
-gdv_float32 round_half_even_float32(gdv_float32);
-gdv_float64 round_half_even_float64(gdv_float64);
-gdv_float32 round_half_even_float32_int32(gdv_float32, gdv_int32);
-gdv_float64 round_half_even_float64_int32(gdv_float64, gdv_int32);
+gdv_float32 bround_float32(gdv_float32);
+gdv_float64 bround_float64(gdv_float64);
+gdv_float32 bround_float32_int32(gdv_float32, gdv_int32);
+gdv_float64 bround_float64_int32(gdv_float64, gdv_int32);
 gdv_int64 get_power_of_10(gdv_int32);
 
 const char* bin_int32(int64_t context, gdv_int32 value, int32_t* out_len);

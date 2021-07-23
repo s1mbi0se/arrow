@@ -91,25 +91,25 @@ TEST(TestExtendedMathOps, TestLogWithBase) {
 }
 
 TEST(TestArithmeticOps, TestRoundHalfToEven) {
-  EXPECT_EQ(round_half_even_float32(2.5), 2);
-  EXPECT_EQ(round_half_even_float32(3.5), 4);
-  EXPECT_EQ(round_half_even_float32(2.1), 2);
-  EXPECT_EQ(round_half_even_float32(3.4), 3);
+  EXPECT_EQ(bround_float32(2.5), 2);
+  EXPECT_EQ(bround_float32(3.5), 4);
+  EXPECT_EQ(bround_float32(2.1), 2);
+  EXPECT_EQ(bround_float32(3.4), 3);
 
-  EXPECT_EQ(round_half_even_float64(2.5), 2);
-  EXPECT_EQ(round_half_even_float64(3.5), 4);
-  EXPECT_EQ(round_half_even_float64(2.1), 2);
-  EXPECT_EQ(round_half_even_float64(3.4), 3);
+  EXPECT_EQ(bround_float64(2.5), 2);
+  EXPECT_EQ(bround_float64(3.5), 4);
+  EXPECT_EQ(bround_float64(2.1), 2);
+  EXPECT_EQ(bround_float64(3.4), 3);
 
-  EXPECT_EQ(round_half_even_float32_int32(8.21, 1), 8.2f);
-  EXPECT_EQ(round_half_even_float32_int32(8.35, 1), 8.4f);
-  EXPECT_EQ(round_half_even_float32_int32(3.455, 1), 3.5f);
-  EXPECT_EQ(round_half_even_float32_int32(8.455, 2), 8.46f);
+  EXPECT_EQ(bround_float32_int32(8.21, 1), 8.2f);
+  EXPECT_EQ(bround_float32_int32(8.35, 1), 8.4f);
+  EXPECT_EQ(bround_float32_int32(3.455, 1), 3.5f);
+  EXPECT_EQ(bround_float32_int32(8.455, 2), 8.46f);
 
-  EXPECT_EQ(round_half_even_float64_int32(8.21, 1), 8.2);
-  EXPECT_EQ(round_half_even_float64_int32(8.35, 1), 8.4);
-  EXPECT_EQ(round_half_even_float64_int32(3.455, 1), 3.5);
-  EXPECT_EQ(round_half_even_float64_int32(8.455, 2), 8.46);
+  EXPECT_EQ(bround_float64_int32(8.21, 1), 8.2);
+  EXPECT_EQ(bround_float64_int32(8.35, 1), 8.4);
+  EXPECT_EQ(bround_float64_int32(3.455, 1), 3.5);
+  EXPECT_EQ(bround_float64_int32(8.455, 2), 8.46);
 }
 
 TEST(TestExtendedMathOps, TestRoundDecimal) {
