@@ -324,14 +324,15 @@ Status LLVMGenerator::CodeGenExprValue(DexPtr value_expr, int buffer_count,
   // define loop_var : start with 0, +1 after each iter
   llvm::PHINode* loop_var = builder->CreatePHI(types()->i64_type(), 2, "loop_var");
 
-  // the following options for FastMatFlags does not affect the floating point precision
   llvm::FastMathFlags fmf;
 
-  // allow optimizations to assume the arguments and result are not NaN
-  fmf.setNoNaNs(true);
-
-  // allow optimizations to assume the arguments and result are not +/-Inf
-  fmf.setNoInfs(true);
+  fmf.setNoNaNs(false);
+  fmf.setNoInfs(false);
+  fmf.setNoSignedZeros(false);
+  fmf.setAllowReciprocal();
+  fmf.setAllowContract();
+  fmf.setApproxFunc();
+  fmf.setAllowReassoc();
 
   loop_var->setFastMathFlags(fmf);
 
