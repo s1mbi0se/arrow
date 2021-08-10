@@ -270,7 +270,6 @@ Status LLVMGenerator::CodeGenExprValue(DexPtr value_expr, int buffer_count,
   arguments.push_back(types()->i64_type());  // nrec
   llvm::FunctionType* prototype =
       llvm::FunctionType::get(types()->i32_type(), arguments, false /*isVarArg*/);
-
   // Create fn
   std::string func_name = "expr_" + std::to_string(suffix_idx) + "_" +
                           std::to_string(static_cast<int>(selection_vector_mode));
@@ -324,6 +323,18 @@ Status LLVMGenerator::CodeGenExprValue(DexPtr value_expr, int buffer_count,
 
   // define loop_var : start with 0, +1 after each iter
   llvm::PHINode* loop_var = builder->CreatePHI(types()->i64_type(), 2, "loop_var");
+
+  llvm::FastMathFlags fmf;
+
+  fmf.setNoNaNs(false);
+  fmf.setNoInfs(false);
+  fmf.setNoSignedZeros(false);
+  fmf.setAllowReciprocal();
+  fmf.setAllowContract();
+  fmf.setApproxFunc();
+  fmf.setAllowReassoc();
+
+  loop_var->setFastMathFlags(fmf);
 
   llvm::Value* position_var = loop_var;
   if (selection_vector_mode != SelectionVector::MODE_NONE) {
