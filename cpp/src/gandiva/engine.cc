@@ -302,8 +302,8 @@ Status Engine::FinalizeModule() {
     pass_builder.Inliner = llvm::createFunctionInliningPass(3, 2, true);
     pass_builder.populateModulePassManager(*pass_manager);
     pass_manager->run(*module_);
-//    just for debug purposes on poc
-//    module_->print(llvm::errs(), nullptr);
+    //    just for debug purposes on poc
+    //    module_->print(llvm::errs(), nullptr);
   }
 
   ARROW_RETURN_IF(llvm::verifyModule(*module_, &llvm::errs()),
