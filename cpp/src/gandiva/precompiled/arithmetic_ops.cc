@@ -255,6 +255,13 @@ DIV_FLOAT(float64)
 
 #undef DIV_FLOAT
 
+FORCE_INLINE
+gdv_int32 width_bucket_int32_int32_int32_int32(gdv_int32 exp, gdv_int32 min, gdv_int32 max, gdv_int32 num) {
+  if (exp < min) return 1;
+  if (exp > max) return num + 1;
+  
+}
+
 #define BITWISE_NOT(TYPE) \
   FORCE_INLINE            \
   gdv_##TYPE bitwise_not_##TYPE(gdv_##TYPE in) { return static_cast<gdv_##TYPE>(~in); }
