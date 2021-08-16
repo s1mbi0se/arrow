@@ -286,7 +286,7 @@ Status Engine::FinalizeModule() {
     pass_manager->add(llvm::createTargetTransformInfoWrapperPass(target_analysis));
     pass_manager->add(llvm::createPartiallyInlineLibCallsPass());
     pass_manager->add(llvm::createPostInlineEntryExitInstrumenterPass());
-//    pass_manager->add(llvm::createFunctionInliningPass());
+    //    pass_manager->add(llvm::createFunctionInliningPass());
     pass_manager->add(llvm::createInstructionCombiningPass());
     pass_manager->add(llvm::createPromoteMemoryToRegisterPass());
     pass_manager->add(llvm::createGVNPass());
@@ -300,11 +300,11 @@ Status Engine::FinalizeModule() {
     llvm::PassManagerBuilder pass_builder;
     pass_builder.OptLevel = 3;
     pass_builder.SizeLevel = 2;
-//    pass_builder.Inliner = llvm::createFunctionInliningPass(3, 2, false);
+    //    pass_builder.Inliner = llvm::createFunctionInliningPass(3, 2, false);
     pass_builder.populateModulePassManager(*pass_manager);
     pass_manager->run(*module_);
     //    just for debug purposes on poc
-        module_->print(llvm::errs(), nullptr);
+    module_->print(llvm::errs(), nullptr);
   }
 
   ARROW_RETURN_IF(llvm::verifyModule(*module_, &llvm::errs()),
