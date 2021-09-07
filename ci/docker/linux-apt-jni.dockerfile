@@ -56,6 +56,7 @@ RUN apt-get update -y -q && \
         make \
         ninja-build \
         pkg-config \
+        libprotobuf-dev \
         protobuf-compiler \
         rapidjson-dev \
         tzdata \
