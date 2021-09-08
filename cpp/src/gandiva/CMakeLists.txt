@@ -45,7 +45,7 @@ find_package(OpenSSLAlt REQUIRED)
 # protobuf
 include(FindProtobuf)
 find_package(Protobuf REQUIRED)
-include_directories(${PROTOBUF_INCLUDE_DIR})
+include_directories(${CMAKE_CURRENT_BINARY_DIR} ${Protobuf_INCLUDE_DIR})
 
 if(MSVC)
   add_definitions(-DPROTOBUF_USE_DLLS)
