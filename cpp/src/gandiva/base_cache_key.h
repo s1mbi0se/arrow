@@ -99,7 +99,8 @@ class BaseCacheKey {
 
     for (size_t i = 0; i < exprs.size(); ++i) {
       if (exprs.at(i) != exprs_.at(i)->ToString()) {
-      }
+        return false;
+      };
     }
 
     return true;

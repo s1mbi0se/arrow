@@ -475,6 +475,7 @@ class GreedyDualSizeCache {
     bool isReallySame =
         key.checkCacheFile(flatbuffer_schema_string, flatbuffer_exprs_string);
     if (!isReallySame) {
+      return std::nullptr_t();
     }
 
     bool status =
