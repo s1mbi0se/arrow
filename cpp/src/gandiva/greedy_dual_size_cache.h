@@ -149,7 +149,7 @@ class GreedyDualSizeCache {
                      << std::to_string(disk_cache_files_qty_) << ".";
 
     const char* env_cache_format = std::getenv("GANDIVA_CACHE_FILE_FORMAT");
-    if (env_cache_format != nullptr) {
+    if (env_cache_format != std::nullptr_t()) {
       env_cache_format_ = env_cache_format;
     } else {
       env_cache_format_ = "PROTOBUF";
@@ -397,7 +397,7 @@ class GreedyDualSizeCache {
   //    std::ifstream cached_file(obj_cache_file.c_str(), std::ios::binary);
   //    if (!cached_file) {
   //      std::cerr << "Failed to open the flatbuffer file cache." << std::endl;
-  //      return nullptr;
+  //      return std::nullptr_t();
   //    }
   //
   //    std::vector<unsigned char> buffer_from_file(
@@ -438,7 +438,7 @@ class GreedyDualSizeCache {
   //          llvm::MemoryBuffer::getMemBufferCopy(obj_code_ref, ref_id_pb);
   //      return std::move(obj_cache_buffer);
   //    }
-  //    return nullptr;
+  //    return std::nullptr_t();
   //  }
 
   /// Reads from cache file with flatbuffer implementation
@@ -447,7 +447,7 @@ class GreedyDualSizeCache {
     std::ifstream cached_file(fileMetadata.filepath.c_str(), std::ios::binary);
     if (!cached_file) {
       std::cerr << "Failed to open the flatbuffer file cache." << std::endl;
-      return nullptr;
+      return std::nullptr_t();
     }
 
     std::vector<unsigned char> buffer_from_file(
@@ -489,7 +489,7 @@ class GreedyDualSizeCache {
           llvm::MemoryBuffer::getMemBufferCopy(obj_code_ref, ref_id_pb);
       return std::move(obj_cache_buffer);
     }
-    return nullptr;
+    return std::nullptr_t();
   }
 
   // ------ New implementation below ------
@@ -503,7 +503,7 @@ class GreedyDualSizeCache {
   //    if (!schema_exprs_obj_code.ParseFromIstream(&input)) {
   //      std::cerr << "Failed to parse the proto buf file cache." << std::endl;
   //      // return -1;
-  //      return nullptr;
+  //      return std::nullptr_t();
   //    }
   //
   //    bool status = verifyProtobufContent(schema_exprs_obj_code, obj_file_name, key);
@@ -523,7 +523,7 @@ class GreedyDualSizeCache {
   //      return std::move(obj_cache_buffer);
   //    }
   //
-  //    return nullptr;
+  //    return std::nullptr_t();
   //  }
 
   /// Reads from cache file with protobuf implementation
@@ -535,7 +535,7 @@ class GreedyDualSizeCache {
     std::fstream input(fileMetadata.filepath.c_str(), std::ios::in | std::ios::binary);
     if (!schema_exprs_obj_code.ParseFromIstream(&input)) {
       std::cerr << "Failed to parse the proto buf file cache." << std::endl;
-      return nullptr;
+      return std::nullptr_t();
     }
 
     bool status =
@@ -551,7 +551,7 @@ class GreedyDualSizeCache {
       return std::move(obj_cache_buffer);
     }
 
-    return nullptr;
+    return std::nullptr_t();
   }
 
   // ------ New implementation below ------
