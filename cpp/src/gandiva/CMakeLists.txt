@@ -78,6 +78,13 @@ add_custom_target(gandiva_cache_proto ALL DEPENDS ${PROTO_OUTPUT_FILES})
 set(PROTO_SRCS "${PROTO_OUTPUT_DIR}/gandiva_cache_file.pb.cc")
 set(PROTO_HDRS "${PROTO_OUTPUT_DIR}/gandiva_cache_file.pb.h")
 
+set(GANDIVA_LINK_LIBS ${ARROW_PROTOBUF_LIBPROTOBUF})
+if(ARROW_BUILD_STATIC)
+  list(APPEND GANDIVA_LINK_LIBS gandiva_static)
+else()
+  list(APPEND GANDIVA_LINK_LIBS gandiva_shared)
+endif()
+
 # Set the path where the bitcode file generated, see precompiled/CMakeLists.txt
 set(GANDIVA_PRECOMPILED_BC_PATH "${CMAKE_CURRENT_BINARY_DIR}/irhelpers.bc")
 set(GANDIVA_PRECOMPILED_CC_PATH "${CMAKE_CURRENT_BINARY_DIR}/precompiled_bitcode.cc")
