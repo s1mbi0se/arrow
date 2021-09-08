@@ -26,7 +26,7 @@ size_t GetCapacity() {
   size_t capacity;
   const char* env_cache_size = std::getenv("GANDIVA_CACHE_SIZE");
   if (env_cache_size != nullptr) {
-    capacity = std::stoul(env_cache_size);
+    capacity = std::atoi(env_cache_size);
 
     if (capacity <= 0) {
       ARROW_LOG(WARNING) << "Invalid cache size provided. Using default cache size: "
