@@ -83,4 +83,5 @@ ENV ARROW_BUILD_TESTS=OFF \
     CC=gcc \
     CXX=g++ \
     ORC_SOURCE=BUNDLED \
+    Protobuf_SOURCE=BUNDLED \
     PATH=/usr/lib/ccache/:$PATH

@@ -43,20 +43,9 @@ add_definitions(-DGANDIVA_LLVM_VERSION=${LLVM_VERSION_MAJOR})
 find_package(OpenSSLAlt REQUIRED)
 
 # protobuf
-#include(FindProtobuf)
-#find_package(Protobuf REQUIRED)
-#include_directories(${CMAKE_CURRENT_BINARY_DIR} ${Protobuf_INCLUDE_DIR})
-set(Protobuf_USE_STATIC_LIBS ON)
-
 find_package(Protobuf REQUIRED)
-if (Protobuf_FOUND)
-  message( STATUS "Protobuf version : ${Protobuf_VERSION}" )
-  message( STATUS "Protobuf include path : ${Protobuf_INCLUDE_DIRS}" )
-  message( STATUS "Protobuf libraries : ${Protobuf_LIBRARIES}" )
-  include_directories(${Protobuf_INCLUDE_DIRS})
-else()
-  message( WARNING "Protobuf package not found -> specify search path via PROTOBUF_ROOT variable")
-endif()
+include_directories(${Protobuf_INCLUDE_DIRS})
+include_directories(${CMAKE_CURRENT_BINARY_DIR})
 
 if(MSVC)
   add_definitions(-DPROTOBUF_USE_DLLS)
