@@ -155,8 +155,7 @@ Status Filter::Make(SchemaPtr schema, ConditionPtr condition,
   //
   filter->get()->SetCompiledFromCache(
       llvm_flag);  // to use when caching only the obj code
-  //  used_cache_size_ = shared_cache->getCacheSize(); // track filter cache memory use
-  //
+
   ARROW_LOG(DEBUG)
       << "[DEBUG][CACHE-LOG][INFO]: " +
              shared_cache->ToString();  // to use when caching only the obj code
@@ -200,9 +199,5 @@ std::string Filter::DumpIR() { return llvm_generator_->DumpIR(); }
 void Filter::SetCompiledFromCache(bool flag) { compiled_from_cache_ = flag; }
 
 bool Filter::GetCompiledFromCache() { return compiled_from_cache_; }
-
-size_t Filter::GetUsedCacheSize() { return used_cache_size_; }
-
-size_t Filter::used_cache_size_ = 0;
 
 }  // namespace gandiva

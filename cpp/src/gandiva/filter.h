@@ -105,14 +105,12 @@ class GANDIVA_EXPORT Filter {
 
   void SetCompiledFromCache(bool flag);
   bool GetCompiledFromCache();
-  size_t GetUsedCacheSize();
 
  private:
   std::unique_ptr<LLVMGenerator> llvm_generator_;
   SchemaPtr schema_;
   std::shared_ptr<Configuration> configuration_;
   bool compiled_from_cache_;
-  static size_t used_cache_size_;
 };
 
 }  // namespace gandiva

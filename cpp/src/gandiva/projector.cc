@@ -200,7 +200,6 @@ Status Projector::Make(SchemaPtr schema, const ExpressionVector& exprs,
   ARROW_LOG(DEBUG)
       << "[DEBUG][CACHE-LOG][INFO]: " +
              shared_cache->ToString();  // to use when caching only the obj code
-  //  used_cache_size_ = shared_cache->getCacheSize();
 
   return Status::OK();
 }
@@ -376,9 +375,5 @@ std::string Projector::DumpIR() { return llvm_generator_->DumpIR(); }
 void Projector::SetCompiledFromCache(bool flag) { compiled_from_cache_ = flag; }
 
 bool Projector::GetCompiledFromCache() { return compiled_from_cache_; }
-
-size_t Projector::GetUsedCacheSize() { return used_cache_size_; }
-
-size_t Projector::used_cache_size_ = 0;
 
 }  // namespace gandiva
