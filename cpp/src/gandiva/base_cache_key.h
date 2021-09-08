@@ -20,9 +20,6 @@
 #include <arrow/util/hash_util.h>
 #include <stddef.h>
 
-#include <boost/lexical_cast.hpp>
-#include <sstream>
-
 #include "gandiva/expression.h"
 #include "gandiva/filter.h"
 #include "gandiva/projector.h"
