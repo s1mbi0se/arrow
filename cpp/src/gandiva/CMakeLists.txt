@@ -43,9 +43,20 @@ add_definitions(-DGANDIVA_LLVM_VERSION=${LLVM_VERSION_MAJOR})
 find_package(OpenSSLAlt REQUIRED)
 
 # protobuf
-include(FindProtobuf)
+#include(FindProtobuf)
+#find_package(Protobuf REQUIRED)
+#include_directories(${CMAKE_CURRENT_BINARY_DIR} ${Protobuf_INCLUDE_DIR})
+set(Protobuf_USE_STATIC_LIBS ON)
+
 find_package(Protobuf REQUIRED)
-include_directories(${CMAKE_CURRENT_BINARY_DIR} ${Protobuf_INCLUDE_DIR})
+if (Protobuf_FOUND)
+  message( STATUS "Protobuf version : ${Protobuf_VERSION}" )
+  message( STATUS "Protobuf include path : ${Protobuf_INCLUDE_DIRS}" )
+  message( STATUS "Protobuf libraries : ${Protobuf_LIBRARIES}" )
+  include_directories(${Protobuf_INCLUDE_DIRS})
+else()
+  message( WARNING "Protobuf package not found -> specify search path via PROTOBUF_ROOT variable")
+endif()
 
 if(MSVC)
   add_definitions(-DPROTOBUF_USE_DLLS)
@@ -175,7 +186,7 @@ add_arrow_lib(gandiva
               $<TARGET_PROPERTY:LLVM::LLVM_INTERFACE,INTERFACE_INCLUDE_DIRECTORIES>
               ${GANDIVA_OPENSSL_INCLUDE_DIR}
               ${UTF8PROC_INCLUDE_DIR}
-              ${PROTOBUF_INCLUDE_DIR}
+              ${Protobuf_INCLUDE_DIRS}
               SHARED_LINK_FLAGS
               ${GANDIVA_SHARED_LINK_FLAGS}
               SHARED_LINK_LIBS
