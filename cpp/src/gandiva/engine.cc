@@ -304,8 +304,7 @@ Status Engine::FinalizeModule() {
                   Status::CodeGenError("Module verification failed after optimizer"));
   // do the compilation
   if (execution_engine_->hasError()) {
-    ARROW_LOG(WARNING) << "[ERROR]: "
-                       << execution_engine_->getErrorMessage();
+    ARROW_LOG(WARNING) << "[ERROR]: " << execution_engine_->getErrorMessage();
     module_finalized_ = false;
     return Status::ExecutionError(execution_engine_->getErrorMessage());
   }
