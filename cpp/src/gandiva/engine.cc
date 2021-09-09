@@ -313,8 +313,6 @@ Status Engine::FinalizeModule() {
   return Status::OK();
 }
 
-}
-
 void* Engine::CompiledFunction(llvm::Function* irFunction) {
   DCHECK(module_finalized_);
   return execution_engine_->getPointerToFunction(irFunction);
