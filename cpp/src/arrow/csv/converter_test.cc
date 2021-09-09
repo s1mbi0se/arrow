@@ -296,6 +296,13 @@ TEST(FixedSizeBinaryConversion, CustomNulls) {
   auto options = ConvertOptions::Defaults();
   options.null_values = {"xxx", "zzz"};
 
+  AssertConversion<FixedSizeBinaryType, std::string>(fixed_size_binary(2),
+                                                     {"\"ab\",\"xxx\"\n"}, {{"ab"}, {""}},
+                                                     {{true}, {false}}, options);
+
+  options.quoted_strings_can_be_null = false;
+  AssertConversionError(fixed_size_binary(2), {"\"ab\",\"xxx\"\n"}, {1}, options);
+
   AssertConversion<FixedSizeBinaryType, std::string>(
       fixed_size_binary(2), {"ab,xxx\n", "zzz,ij\n"}, {{"ab", "\0\0"}, {"\0\0", "ij"}},
       {{true, false}, {false, true}}, options);
@@ -351,6 +358,12 @@ TEST(IntegerConversion, CustomNulls) {
   auto options = ConvertOptions::Defaults();
   options.null_values = {"xxx", "zzz"};
 
+  AssertConversion<Int8Type, int8_t>(int8(), {"\"12\",\"xxx\"\n"}, {{12}, {0}},
+                                     {{true}, {false}}, options);
+
+  options.quoted_strings_can_be_null = false;
+  AssertConversionError(int8(), {"\"12\",\"xxx\"\n"}, {1}, options);
+
   AssertConversion<Int8Type, int8_t>(int8(), {"12,xxx\n", "zzz,-128\n"},
                                      {{12, 0}, {0, -128}}, {{true, false}, {false, true}},
                                      options);
@@ -388,6 +401,12 @@ TEST(FloatingPointConversion, CustomNulls) {
   auto options = ConvertOptions::Defaults();
   options.null_values = {"xxx", "zzz"};
 
+  AssertConversion<FloatType, float>(float32(), {"\"1.5\",\"xxx\"\n"}, {{1.5}, {0}},
+                                     {{true}, {false}}, options);
+
+  options.quoted_strings_can_be_null = false;
+  AssertConversionError(float32(), {"\"1.5\",\"xxx\"\n"}, {1}, options);
+
   AssertConversion<FloatType, float>(float32(), {"1.5,xxx\n", "zzz,-1e10\n"},
                                      {{1.5, 0.}, {0., -1e10f}},
                                      {{true, false}, {false, true}}, options);
@@ -396,6 +415,18 @@ TEST(FloatingPointConversion, CustomNulls) {
 TEST(FloatingPointConversion, Whitespace) {
   AssertConversion<DoubleType, double>(float64(), {" 12,34.5\n", " 0 ,-1e100 \n"},
                                        {{12., 0.}, {34.5, -1e100}});
+}
+
+TEST(FloatingPointConversion, CustomDecimalPoint) {
+  auto options = ConvertOptions::Defaults();
+  options.decimal_point = '/';
+
+  AssertConversion<FloatType, float>(float32(), {"1/5\n", "-1e10\n", "N/A\n"},
+                                     {{1.5, -1e10f, 0.}}, {{true, true, false}}, options);
+  AssertConversion<DoubleType, double>(float64(), {"1/5\n", "-1e10\n", "N/A\n"},
+                                       {{1.5, -1e10, 0.}}, {{true, true, false}},
+                                       options);
+  AssertConversionError(float32(), {"1.5\n"}, {0}, options);
 }
 
 TEST(BooleanConversion, Basics) {
@@ -414,6 +445,12 @@ TEST(BooleanConversion, CustomNulls) {
   auto options = ConvertOptions::Defaults();
   options.null_values = {"xxx", "zzz"};
 
+  AssertConversion<BooleanType, bool>(boolean(), {"\"true\",\"xxx\"\n"}, {{1}, {0}},
+                                      {{true}, {false}}, options);
+
+  options.quoted_strings_can_be_null = false;
+  AssertConversionError(boolean(), {"\"true\",\"xxx\"\n"}, {1}, options);
+
   AssertConversion<BooleanType, bool>(boolean(), {"true,xxx\n", "zzz,0\n"},
                                       {{true, false}, {false, false}},
                                       {{true, false}, {false, true}}, options);
@@ -429,6 +466,11 @@ TEST(Date32Conversion, Nulls) {
                                         {{false, true}});
 }
 
+TEST(Date32Conversion, Errors) {
+  AssertConversionError(date32(), {"1945-06-31\n"}, {0});
+  AssertConversionError(date32(), {"2020-13-01\n"}, {0});
+}
+
 TEST(Date64Conversion, Basics) {
   AssertConversion<Date64Type, int64_t>(date64(), {"1945-05-08\n", "2020-03-15\n"},
                                         {{-777945600000LL, 1584230400000LL}});
@@ -437,6 +479,63 @@ TEST(Date64Conversion, Basics) {
 TEST(Date64Conversion, Nulls) {
   AssertConversion<Date64Type, int64_t>(date64(), {"N/A\n", "2020-03-15\n"},
                                         {{0, 1584230400000LL}}, {{false, true}});
+}
+
+TEST(Date64Conversion, Errors) {
+  AssertConversionError(date64(), {"1945-06-31\n"}, {0});
+  AssertConversionError(date64(), {"2020-13-01\n"}, {0});
+}
+
+TEST(Time32Conversion, Seconds) {
+  const auto type = time32(TimeUnit::SECOND);
+
+  AssertConversion<Time32Type, int32_t>(type, {"00:00\n", "00:00:00\n"}, {{0, 0}});
+  AssertConversion<Time32Type, int32_t>(type, {"01:23:45\n", "23:45:43\n"},
+                                        {{5025, 85543}});
+  AssertConversion<Time32Type, int32_t>(type, {"N/A\n", "23:59:59\n"}, {{0, 86399}},
+                                        {{false, true}});
+
+  AssertConversionError(type, {"24:00\n"}, {0});
+  AssertConversionError(type, {"23:59:60\n"}, {0});
+}
+
+TEST(Time32Conversion, Millis) {
+  const auto type = time32(TimeUnit::MILLI);
+
+  AssertConversion<Time32Type, int32_t>(type, {"00:00\n", "00:00:00\n"}, {{0, 0}});
+  AssertConversion<Time32Type, int32_t>(type, {"01:23:45.1\n", "23:45:43.789\n"},
+                                        {{5025100, 85543789}});
+  AssertConversion<Time32Type, int32_t>(type, {"N/A\n", "23:59:59.999\n"},
+                                        {{0, 86399999}}, {{false, true}});
+
+  AssertConversionError(type, {"24:00\n"}, {0});
+  AssertConversionError(type, {"23:59:60\n"}, {0});
+}
+
+TEST(Time64Conversion, Micros) {
+  const auto type = time64(TimeUnit::MICRO);
+
+  AssertConversion<Time64Type, int64_t>(type, {"00:00\n", "00:00:00\n"}, {{0LL, 0LL}});
+  AssertConversion<Time64Type, int64_t>(type, {"01:23:45.1\n", "23:45:43.456789\n"},
+                                        {{5025100000LL, 85543456789LL}});
+  AssertConversion<Time64Type, int64_t>(type, {"N/A\n", "23:59:59.999999\n"},
+                                        {{0, 86399999999LL}}, {{false, true}});
+
+  AssertConversionError(type, {"24:00\n"}, {0});
+  AssertConversionError(type, {"23:59:60\n"}, {0});
+}
+
+TEST(Time64Conversion, Nanos) {
+  const auto type = time64(TimeUnit::NANO);
+
+  AssertConversion<Time64Type, int64_t>(type, {"00:00\n", "00:00:00\n"}, {{0LL, 0LL}});
+  AssertConversion<Time64Type, int64_t>(type, {"01:23:45.1\n", "23:45:43.123456789\n"},
+                                        {{5025100000000LL, 85543123456789LL}});
+  AssertConversion<Time64Type, int64_t>(type, {"N/A\n", "23:59:59.999999999\n"},
+                                        {{0, 86399999999999LL}}, {{false, true}});
+
+  AssertConversionError(type, {"24:00\n"}, {0});
+  AssertConversionError(type, {"23:59:60\n"}, {0});
 }
 
 TEST(TimestampConversion, Basics) {
@@ -465,8 +564,14 @@ TEST(TimestampConversion, Nulls) {
 TEST(TimestampConversion, CustomNulls) {
   auto options = ConvertOptions::Defaults();
   options.null_values = {"xxx", "zzz"};
-
   auto type = timestamp(TimeUnit::MILLI);
+
+  AssertConversion<TimestampType, int64_t>(type, {"\"1970-01-01 00:01:00\",\"xxx\"\n"},
+                                           {{60000}, {0}}, {{true}, {false}}, options);
+
+  options.quoted_strings_can_be_null = false;
+  AssertConversionError(type, {"\"1970-01-01 00:01:00\",\"xxx\"\n"}, {1}, options);
+
   AssertConversion<TimestampType, int64_t>(type, {"1970-01-01 00:01:00,xxx,zzz\n"},
                                            {{60000}, {0}, {0}},
                                            {{true}, {false}, {false}}, options);
@@ -514,10 +619,28 @@ TEST(DecimalConversion, CustomNulls) {
   auto options = ConvertOptions::Defaults();
   options.null_values = {"xxx", "zzz"};
 
+  AssertConversion<Decimal128Type, Decimal128>(decimal(14, 3), {"\"1.5\",\"xxx\"\n"},
+                                               {{Dec128("1.500")}, {0}},
+                                               {{true}, {false}}, options);
+
+  options.quoted_strings_can_be_null = false;
+  AssertConversionError(decimal(14, 3), {"\"1.5\",\"xxx\"\n"}, {1}, options);
+
   AssertConversion<Decimal128Type, Decimal128>(
       decimal(14, 3), {"1.5,xxx\n", "zzz,-1e3\n"},
       {{Dec128("1.500"), Decimal128()}, {Decimal128(), Dec128("-1000.000")}},
       {{true, false}, {false, true}}, options);
+}
+
+TEST(DecimalConversion, CustomDecimalPoint) {
+  auto options = ConvertOptions::Defaults();
+  options.decimal_point = '/';
+
+  AssertConversion<Decimal128Type, Decimal128>(
+      decimal(14, 3), {"1/5,0/\n", ",-1e3\n"},
+      {{Dec128("1.500"), Decimal128()}, {Decimal128(), Dec128("-1000.000")}},
+      {{true, false}, {true, true}}, options);
+  AssertConversionError(decimal128(14, 3), {"1.5\n"}, {0}, options);
 }
 
 TEST(DecimalConversion, Whitespace) {
@@ -560,11 +683,17 @@ TYPED_TEST(TestNumericDictConverter, Nulls) {
   auto expected_indices = ArrayFromJSON(int32(), "[0, 1, null, 0]");
 
   AssertDictConversion("4\n5\nN/A\n4\n", expected_indices, expected_dict);
+  AssertDictConversion("\"4\"\n\"5\"\n\"N/A\"\n\"4\"\n", expected_indices, expected_dict);
 }
 
 TYPED_TEST(TestNumericDictConverter, Errors) {
   auto value_type = this->type();
   ASSERT_RAISES(Invalid, DictConversion(value_type, "xxx\n"));
+
+  ConvertOptions options = ConvertOptions::Defaults();
+
+  options.quoted_strings_can_be_null = false;
+  ASSERT_RAISES(Invalid, DictConversion(value_type, "\"N/A\"\n", -1, options));
 
   // Overflow
   if (is_integer(value_type->id())) {
@@ -661,6 +790,21 @@ TEST(TestDecimalDictConverter, Basics) {
 
   AssertDictConversion("1.234\n456.789\nN/A\n4.56789e2\n", expected_indices,
                        expected_dict);
+}
+
+TEST(TestDecimalDictConverter, CustomDecimalPoint) {
+  auto value_type = decimal(9, 3);
+
+  auto options = ConvertOptions::Defaults();
+  options.decimal_point = '\'';
+
+  auto expected_dict = ArrayFromJSON(value_type, R"(["1.234", "456.789"])");
+  auto expected_indices = ArrayFromJSON(int32(), "[0, 1, null, 1]");
+
+  AssertDictConversion("1'234\n456'789\nN/A\n4'56789e2\n", expected_indices,
+                       expected_dict, -1, options);
+
+  ASSERT_RAISES(Invalid, DictConversion(value_type, "1.234\n", -1, options));
 }
 
 TEST(TestDecimalDictConverter, Errors) {

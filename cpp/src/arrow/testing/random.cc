@@ -20,6 +20,7 @@
 #include <gtest/gtest.h>
 
 #include <algorithm>
+#include <array>
 #include <cmath>
 #include <limits>
 #include <memory>
@@ -229,34 +230,95 @@ std::shared_ptr<Array> RandomArrayGenerator::Float64(int64_t size, double min, d
 #undef PRIMITIVE_RAND_INTEGER_IMPL
 #undef PRIMITIVE_RAND_IMPL
 
+namespace {
+
+// A generic generator for random decimal arrays
+template <typename DecimalType>
+struct DecimalGenerator {
+  using DecimalBuilderType = typename TypeTraits<DecimalType>::BuilderType;
+  using DecimalValue = typename DecimalBuilderType::ValueType;
+
+  std::shared_ptr<DataType> type_;
+  RandomArrayGenerator* rng_;
+
+  static uint64_t MaxDecimalInteger(int32_t digits) {
+    // Need to decrement *after* the cast to uint64_t because, while
+    // 10**x is exactly representable in a double for x <= 19,
+    // 10**x - 1 is not.
+    return static_cast<uint64_t>(std::ceil(std::pow(10.0, digits))) - 1;
+  }
+
+  std::shared_ptr<Array> MakeRandomArray(int64_t size, double null_probability) {
+    // 10**19 fits in a 64-bit unsigned integer
+    static constexpr int32_t kMaxDigitsInInteger = 19;
+    static constexpr int kNumIntegers = DecimalType::kByteWidth / 8;
+
+    static_assert(
+        kNumIntegers ==
+            (DecimalType::kMaxPrecision + kMaxDigitsInInteger - 1) / kMaxDigitsInInteger,
+        "inconsistent decimal metadata: kMaxPrecision doesn't match kByteWidth");
+
+    // First generate separate random values for individual components:
+    // boolean sign (including null-ness), and uint64 "digits" in big endian order.
+    const auto& decimal_type = checked_cast<const DecimalType&>(*type_);
+
+    const auto sign_array = checked_pointer_cast<BooleanArray>(
+        rng_->Boolean(size, /*true_probability=*/0.5, null_probability));
+    std::array<std::shared_ptr<UInt64Array>, kNumIntegers> digit_arrays;
+
+    auto remaining_digits = decimal_type.precision();
+    for (int i = kNumIntegers - 1; i >= 0; --i) {
+      const auto digits = std::min(kMaxDigitsInInteger, remaining_digits);
+      digit_arrays[i] = checked_pointer_cast<UInt64Array>(
+          rng_->UInt64(size, 0, MaxDecimalInteger(digits)));
+      DCHECK_EQ(digit_arrays[i]->null_count(), 0);
+      remaining_digits -= digits;
+    }
+
+    // Second compute decimal values from the individual components,
+    // building up a decimal array.
+    DecimalBuilderType builder(type_);
+    ABORT_NOT_OK(builder.Reserve(size));
+
+    const DecimalValue kDigitsMultiplier =
+        DecimalValue::GetScaleMultiplier(kMaxDigitsInInteger);
+
+    for (int64_t i = 0; i < size; ++i) {
+      if (sign_array->IsValid(i)) {
+        DecimalValue dec_value{0};
+        for (int j = 0; j < kNumIntegers; ++j) {
+          dec_value =
+              dec_value * kDigitsMultiplier + DecimalValue(digit_arrays[j]->Value(i));
+        }
+        if (sign_array->Value(i)) {
+          builder.UnsafeAppend(dec_value.Negate());
+        } else {
+          builder.UnsafeAppend(dec_value);
+        }
+      } else {
+        builder.UnsafeAppendNull();
+      }
+    }
+    std::shared_ptr<Array> array;
+    ABORT_NOT_OK(builder.Finish(&array));
+    return array;
+  }
+};
+
+}  // namespace
+
 std::shared_ptr<Array> RandomArrayGenerator::Decimal128(std::shared_ptr<DataType> type,
                                                         int64_t size,
                                                         double null_probability) {
-  const auto& decimal_type = checked_cast<const Decimal128Type&>(*type);
-  const auto digits = decimal_type.precision();
-  if (digits > 18) {
-    // More than 18 digits + sign don't fit in a int64_t
-    ABORT_NOT_OK(
-        Status::NotImplemented("random decimal128 generation with precision > 18"));
-  }
+  DecimalGenerator<Decimal128Type> gen{type, this};
+  return gen.MakeRandomArray(size, null_probability);
+}
 
-  // Generate logical values as integers, then convert them
-  const auto max = static_cast<int64_t>(std::llround(std::pow(10.0, digits)) - 1);
-  const auto int_array =
-      checked_pointer_cast<Int64Array>(Int64(size, -max, max, null_probability));
-
-  Decimal128Builder builder(type);
-  ABORT_NOT_OK(builder.Reserve(size));
-  for (int64_t i = 0; i < size; ++i) {
-    if (int_array->IsValid(i)) {
-      builder.UnsafeAppend(::arrow::Decimal128(int_array->Value(i)));
-    } else {
-      builder.UnsafeAppendNull();
-    }
-  }
-  std::shared_ptr<Array> array;
-  ABORT_NOT_OK(builder.Finish(&array));
-  return array;
+std::shared_ptr<Array> RandomArrayGenerator::Decimal256(std::shared_ptr<DataType> type,
+                                                        int64_t size,
+                                                        double null_probability) {
+  DecimalGenerator<Decimal256Type> gen{type, this};
+  return gen.MakeRandomArray(size, null_probability);
 }
 
 template <typename TypeClass>
@@ -585,7 +647,9 @@ struct RandomArrayGeneratorOfImpl {
   }
 
   template <typename T>
-  enable_if_t<is_temporal_type<T>::value && !std::is_same<T, DayTimeIntervalType>::value,
+  enable_if_t<is_temporal_type<T>::value &&
+                  !std::is_same<T, DayTimeIntervalType>::value &&
+                  !std::is_same<T, MonthDayNanoIntervalType>::value,
               Status>
   Visit(const T&) {
     auto max = std::numeric_limits<typename T::c_type>::max();
@@ -620,6 +684,11 @@ struct RandomArrayGeneratorOfImpl {
     auto values_data = std::make_shared<ArrayData>(type_, size_);
     values_data->buffers = {validity->data()->buffers[1], data};
     out_ = MakeArray(values_data);
+    return Status::OK();
+  }
+
+  Status Visit(const Decimal256Type&) {
+    out_ = rag_->Decimal256(type_, size_, null_probability_);
     return Status::OK();
   }
 
@@ -779,7 +848,11 @@ std::shared_ptr<Array> RandomArrayGenerator::ArrayOf(const Field& field, int64_t
     }
 
     case Type::type::DECIMAL128:
+      return Decimal128(field.type(), length, null_probability);
+
     case Type::type::DECIMAL256:
+      return Decimal256(field.type(), length, null_probability);
+
     case Type::type::FIXED_SIZE_BINARY: {
       auto byte_width =
           internal::checked_pointer_cast<FixedSizeBinaryType>(field.type())->byte_width();
@@ -796,6 +869,10 @@ std::shared_ptr<Array> RandomArrayGenerator::ArrayOf(const Field& field, int64_t
       // This isn't as flexible as it could be, but the array-of-structs layout of this
       // type means it's not a (useful) composition of other generators
       GENERATE_INTEGRAL_CASE_VIEW(Int64Type, DayTimeIntervalType);
+    case Type::type::INTERVAL_MONTH_DAY_NANO: {
+      return *FixedSizeBinary(length, /*byte_width=*/16, null_probability)
+                  ->View(month_day_nano_interval());
+    }
 
       GENERATE_LIST_CASE(ListArray);
 
@@ -927,6 +1004,36 @@ std::shared_ptr<arrow::RecordBatch> GenerateBatch(const FieldVector& fields,
                                                   int64_t length, SeedType seed) {
   return RandomArrayGenerator(seed).BatchOf(fields, length);
 }
-
 }  // namespace random
+
+void rand_day_millis(int64_t N, std::vector<DayTimeIntervalType::DayMilliseconds>* out) {
+  const int random_seed = 0;
+  arrow::random::pcg32_fast gen(random_seed);
+  std::uniform_int_distribution<int32_t> d(std::numeric_limits<int32_t>::min(),
+                                           std::numeric_limits<int32_t>::max());
+  out->resize(N, {});
+  std::generate(out->begin(), out->end(), [&d, &gen] {
+    DayTimeIntervalType::DayMilliseconds tmp;
+    tmp.days = d(gen);
+    tmp.milliseconds = d(gen);
+    return tmp;
+  });
+}
+
+void rand_month_day_nanos(int64_t N,
+                          std::vector<MonthDayNanoIntervalType::MonthDayNanos>* out) {
+  const int random_seed = 0;
+  arrow::random::pcg32_fast gen(random_seed);
+  std::uniform_int_distribution<int64_t> d(std::numeric_limits<int64_t>::min(),
+                                           std::numeric_limits<int64_t>::max());
+  out->resize(N, {});
+  std::generate(out->begin(), out->end(), [&d, &gen] {
+    MonthDayNanoIntervalType::MonthDayNanos tmp;
+    tmp.months = static_cast<int32_t>(d(gen));
+    tmp.days = static_cast<int32_t>(d(gen));
+    tmp.nanoseconds = d(gen);
+    return tmp;
+  });
+}
+
 }  // namespace arrow

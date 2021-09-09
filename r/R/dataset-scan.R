@@ -28,7 +28,8 @@
 #'
 #' * `dataset`: A `Dataset` or `arrow_dplyr_query` object, as returned by the
 #'    `dplyr` methods on `Dataset`.
-#' * `projection`: A character vector of column names to select
+#' * `projection`: A character vector of column names to select columns or a
+#'    named list of expressions
 #' * `filter`: A `Expression` to filter the scanned rows by, or `TRUE` (default)
 #'    to keep all rows.
 #' * `use_threads`: logical: should scanning use multithreading? Default `TRUE`
@@ -56,7 +57,8 @@
 #' @rdname Scanner
 #' @name Scanner
 #' @export
-Scanner <- R6Class("Scanner", inherit = ArrowObject,
+Scanner <- R6Class("Scanner",
+  inherit = ArrowObject,
   public = list(
     ToTable = function() dataset___Scanner__ToTable(self),
     ScanBatches = function() dataset___Scanner__ScanBatches(self),
@@ -76,7 +78,7 @@ Scanner$create <- function(dataset,
                            fragment_scan_options = NULL,
                            ...) {
   if (is.null(use_async)) {
-    use_async = getOption("arrow.use_async", FALSE)
+    use_async <- getOption("arrow.use_async", FALSE)
   }
 
   if (inherits(dataset, "arrow_dplyr_query")) {
@@ -84,9 +86,29 @@ Scanner$create <- function(dataset,
       # To handle mutate() on Table/RecordBatch, we need to collect(as_data_frame=FALSE) now
       dataset <- dplyr::collect(dataset, as_data_frame = FALSE)
     }
+
+    proj <- c(dataset$selected_columns, dataset$temp_columns)
+
+    if (!is.null(projection)) {
+      if (is.character(projection)) {
+        stopifnot("attempting to project with unknown columns" = all(projection %in% names(proj)))
+        proj <- proj[projection]
+      } else {
+        # TODO: ARROW-13802 accepting lists of Expressions as a projection
+        warning(
+          "Scanner$create(projection = ...) must be a character vector, ",
+          "ignoring the projection argument."
+        )
+      }
+    }
+
+    if (!isTRUE(filter)) {
+      dataset <- set_filters(dataset, filter)
+    }
+
     return(Scanner$create(
       dataset$.data,
-      c(dataset$selected_columns, dataset$temp_columns),
+      proj,
       dataset$filtered_rows,
       use_threads,
       use_async,
@@ -125,7 +147,8 @@ Scanner$create <- function(dataset,
 #' @export
 names.Scanner <- function(x) names(x$schema)
 
-ScanTask <- R6Class("ScanTask", inherit = ArrowObject,
+ScanTask <- R6Class("ScanTask",
+  inherit = ArrowObject,
   public = list(
     Execute = function() dataset___ScanTask__get_batches(self)
   )
@@ -155,9 +178,7 @@ map_batches <- function(X, FUN, ..., .data.frame = TRUE) {
   }
   scanner <- Scanner$create(ensure_group_vars(X))
   FUN <- as_mapper(FUN)
-  # message("Making ScanTasks")
   lapply(scanner$ScanBatches(), function(batch) {
-    # message("Processing Batch")
     # TODO: wrap batch in arrow_dplyr_query with X$selected_columns,
     # X$temp_columns, and X$group_by_vars
     # if X is arrow_dplyr_query, if some other arg (.dplyr?) == TRUE
@@ -169,7 +190,8 @@ map_batches <- function(X, FUN, ..., .data.frame = TRUE) {
 #' @format NULL
 #' @rdname Scanner
 #' @export
-ScannerBuilder <- R6Class("ScannerBuilder", inherit = ArrowObject,
+ScannerBuilder <- R6Class("ScannerBuilder",
+  inherit = ArrowObject,
   public = list(
     Project = function(cols) {
       # cols is either a character vector or a named list of Expressions

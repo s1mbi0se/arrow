@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 
+import abc
 import bz2
 from datetime import date, datetime
 from decimal import Decimal
@@ -31,6 +32,7 @@ import tempfile
 import threading
 import time
 import unittest
+import weakref
 
 import pytest
 
@@ -39,7 +41,7 @@ import numpy as np
 import pyarrow as pa
 from pyarrow.csv import (
     open_csv, read_csv, ReadOptions, ParseOptions, ConvertOptions, ISO8601,
-    write_csv, WriteOptions)
+    write_csv, WriteOptions, CSVWriter)
 from pyarrow.tests import util
 
 
@@ -225,6 +227,7 @@ def test_convert_options():
         cls, check_utf8=[True, False],
         strings_can_be_null=[False, True],
         quoted_strings_can_be_null=[True, False],
+        decimal_point=['.', ','],
         include_columns=[[], ['def', 'abc']],
         include_missing_columns=[False, True],
         auto_dict_encode=[False, True],
@@ -234,10 +237,14 @@ def test_convert_options():
         cls, check_utf8=False,
         strings_can_be_null=True,
         quoted_strings_can_be_null=False,
+        decimal_point=',',
         include_columns=['def', 'abc'],
         include_missing_columns=False,
         auto_dict_encode=True,
         timestamp_parsers=[ISO8601, '%y-%m'])
+
+    with pytest.raises(ValueError):
+        opts.decimal_point = '..'
 
     assert opts.auto_dict_max_cardinality > 0
     opts.auto_dict_max_cardinality = 99999
@@ -315,52 +322,28 @@ def test_write_options():
         opts.validate()
 
 
-class BaseTestCSVRead:
+class BaseTestCSV(abc.ABC):
+    """Common tests which are shared by streaming and non streaming readers"""
 
+    @abc.abstractmethod
     def read_bytes(self, b, **kwargs):
-        return self.read_csv(pa.py_buffer(b), **kwargs)
+        """
+        :param b: bytes to be parsed
+        :param kwargs: arguments passed on to open the csv file
+        :return: b parsed as a single RecordBatch
+        """
+        raise NotImplementedError
 
-    def check_names(self, table, names):
+    @property
+    @abc.abstractmethod
+    def use_threads(self):
+        """Whether this test is multi-threaded"""
+        raise NotImplementedError
+
+    @staticmethod
+    def check_names(table, names):
         assert table.num_columns == len(names)
         assert table.column_names == names
-
-    def test_file_object(self):
-        data = b"a,b\n1,2\n"
-        expected_data = {'a': [1], 'b': [2]}
-        bio = io.BytesIO(data)
-        table = self.read_csv(bio)
-        assert table.to_pydict() == expected_data
-        # Text files not allowed
-        sio = io.StringIO(data.decode())
-        with pytest.raises(TypeError):
-            self.read_csv(sio)
-
-    def test_header(self):
-        rows = b"abc,def,gh\n"
-        table = self.read_bytes(rows)
-        assert isinstance(table, pa.Table)
-        self.check_names(table, ["abc", "def", "gh"])
-        assert table.num_rows == 0
-
-    def test_bom(self):
-        rows = b"\xef\xbb\xbfa,b\n1,2\n"
-        expected_data = {'a': [1], 'b': [2]}
-        table = self.read_bytes(rows)
-        assert table.to_pydict() == expected_data
-
-    def test_one_chunk(self):
-        # ARROW-7661: lack of newline at end of file should not produce
-        # an additional chunk.
-        rows = [b"a,b", b"1,2", b"3,4", b"56,78"]
-        for line_ending in [b'\n', b'\r', b'\r\n']:
-            for file_ending in [b'', line_ending]:
-                data = line_ending.join(rows) + file_ending
-                table = self.read_bytes(data)
-                assert len(table.to_batches()) == 1
-                assert table.to_pydict() == {
-                    "a": [1, 3, 56],
-                    "b": [2, 4, 78],
-                }
 
     def test_header_skip_rows(self):
         rows = b"ab,cd\nef,gh\nij,kl\nmn,op\n"
@@ -397,6 +380,16 @@ class BaseTestCSVRead:
             "kl": ["op"],
         }
 
+        # Can skip all rows exactly when columns are given
+        opts.skip_rows = 4
+        opts.column_names = ['ij', 'kl']
+        table = self.read_bytes(rows, read_options=opts)
+        self.check_names(table, ["ij", "kl"])
+        assert table.to_pydict() == {
+            "ij": [],
+            "kl": [],
+        }
+
     def test_skip_rows_after_names(self):
         rows = b"ab,cd\nef,gh\nij,kl\nmn,op\n"
 
@@ -409,6 +402,7 @@ class BaseTestCSVRead:
             "cd": ["kl", "op"],
         }
 
+        # Can skip exact number of rows
         opts.skip_rows_after_names = 3
         table = self.read_bytes(rows, read_options=opts)
         self.check_names(table, ["ab", "cd"])
@@ -417,6 +411,7 @@ class BaseTestCSVRead:
             "cd": [],
         }
 
+        # Can skip beyond all rows
         opts.skip_rows_after_names = 4
         table = self.read_bytes(rows, read_options=opts)
         self.check_names(table, ["ab", "cd"])
@@ -449,6 +444,18 @@ class BaseTestCSVRead:
             "ab": ["mn"],
             "cd": ["op"],
         }
+
+        # Can skip rows when block ends in middle of quoted value
+        opts.skip_rows_after_names = 2
+        opts.block_size = 26
+        table = self.read_bytes(rows, read_options=opts,
+                                parse_options=parse_opts)
+        self.check_names(table, ["ab", "cd"])
+        assert table.to_pydict() == {
+            "ab": ["mn"],
+            "cd": ["op"],
+        }
+        opts = ReadOptions()
 
         # Can skip rows that are beyond the first block without lexer
         rows, expected = make_random_csv(num_cols=5, num_rows=1000)
@@ -487,6 +494,169 @@ class BaseTestCSVRead:
         for name, values in expected.to_pydict().items():
             assert (values[opts.skip_rows + opts.skip_rows_after_names:] ==
                     table_dict[name])
+
+    def test_row_number_offset_in_errors(self):
+        # Row numbers are only correctly counted in serial reads
+        def format_msg(msg_format, row, *args):
+            if self.use_threads:
+                row_info = ""
+            else:
+                row_info = "Row #{}: ".format(row)
+            return msg_format.format(row_info, *args)
+
+        csv, _ = make_random_csv(4, 100, write_names=True)
+
+        read_options = ReadOptions()
+        read_options.block_size = len(csv) / 3
+        convert_options = ConvertOptions()
+        convert_options.column_types = {"a": pa.int32()}
+
+        # Test without skip_rows and column names in the csv
+        csv_bad_columns = csv + b"1,2\r\n"
+        message_columns = format_msg("{}Expected 4 columns, got 2", 102)
+        with pytest.raises(pa.ArrowInvalid, match=message_columns):
+            self.read_bytes(csv_bad_columns,
+                            read_options=read_options,
+                            convert_options=convert_options)
+
+        csv_bad_type = csv + b"a,b,c,d\r\n"
+        message_value = format_msg(
+            "In CSV column #0: {}"
+            "CSV conversion error to int32: invalid value 'a'",
+            102, csv)
+        with pytest.raises(pa.ArrowInvalid, match=message_value):
+            self.read_bytes(csv_bad_type,
+                            read_options=read_options,
+                            convert_options=convert_options)
+
+        long_row = (b"this is a long row" * 15) + b",3\r\n"
+        csv_bad_columns_long = csv + long_row
+        message_long = format_msg("{}Expected 4 columns, got 2: {} ...", 102,
+                                  long_row[0:96].decode("utf-8"))
+        with pytest.raises(pa.ArrowInvalid, match=message_long):
+            self.read_bytes(csv_bad_columns_long,
+                            read_options=read_options,
+                            convert_options=convert_options)
+
+        # Test skipping rows after the names
+        read_options.skip_rows_after_names = 47
+
+        with pytest.raises(pa.ArrowInvalid, match=message_columns):
+            self.read_bytes(csv_bad_columns,
+                            read_options=read_options,
+                            convert_options=convert_options)
+
+        with pytest.raises(pa.ArrowInvalid, match=message_value):
+            self.read_bytes(csv_bad_type,
+                            read_options=read_options,
+                            convert_options=convert_options)
+
+        with pytest.raises(pa.ArrowInvalid, match=message_long):
+            self.read_bytes(csv_bad_columns_long,
+                            read_options=read_options,
+                            convert_options=convert_options)
+
+        read_options.skip_rows_after_names = 0
+
+        # Test without skip_rows and column names not in the csv
+        csv, _ = make_random_csv(4, 100, write_names=False)
+        read_options.column_names = ["a", "b", "c", "d"]
+        csv_bad_columns = csv + b"1,2\r\n"
+        message_columns = format_msg("{}Expected 4 columns, got 2", 101)
+        with pytest.raises(pa.ArrowInvalid, match=message_columns):
+            self.read_bytes(csv_bad_columns,
+                            read_options=read_options,
+                            convert_options=convert_options)
+
+        csv_bad_columns_long = csv + long_row
+        message_long = format_msg("{}Expected 4 columns, got 2: {} ...", 101,
+                                  long_row[0:96].decode("utf-8"))
+        with pytest.raises(pa.ArrowInvalid, match=message_long):
+            self.read_bytes(csv_bad_columns_long,
+                            read_options=read_options,
+                            convert_options=convert_options)
+
+        csv_bad_type = csv + b"a,b,c,d\r\n"
+        message_value = format_msg(
+            "In CSV column #0: {}"
+            "CSV conversion error to int32: invalid value 'a'",
+            101)
+        message_value = message_value.format(len(csv))
+        with pytest.raises(pa.ArrowInvalid, match=message_value):
+            self.read_bytes(csv_bad_type,
+                            read_options=read_options,
+                            convert_options=convert_options)
+
+        # Test with skip_rows and column names not in the csv
+        read_options.skip_rows = 23
+        with pytest.raises(pa.ArrowInvalid, match=message_columns):
+            self.read_bytes(csv_bad_columns,
+                            read_options=read_options,
+                            convert_options=convert_options)
+
+        with pytest.raises(pa.ArrowInvalid, match=message_value):
+            self.read_bytes(csv_bad_type,
+                            read_options=read_options,
+                            convert_options=convert_options)
+
+
+class BaseCSVTableRead(BaseTestCSV):
+
+    def read_csv(self, csv, *args, validate_full=True, **kwargs):
+        """
+        Reads the CSV file into memory using pyarrow's read_csv
+        csv The CSV bytes
+        args Positional arguments to be forwarded to pyarrow's read_csv
+        validate_full Whether or not to fully validate the resulting table
+        kwargs Keyword arguments to be forwarded to pyarrow's read_csv
+        """
+        assert isinstance(self.use_threads, bool)  # sanity check
+        read_options = kwargs.setdefault('read_options', ReadOptions())
+        read_options.use_threads = self.use_threads
+        table = read_csv(csv, *args, **kwargs)
+        table.validate(full=validate_full)
+        return table
+
+    def read_bytes(self, b, **kwargs):
+        return self.read_csv(pa.py_buffer(b), **kwargs)
+
+    def test_file_object(self):
+        data = b"a,b\n1,2\n"
+        expected_data = {'a': [1], 'b': [2]}
+        bio = io.BytesIO(data)
+        table = self.read_csv(bio)
+        assert table.to_pydict() == expected_data
+        # Text files not allowed
+        sio = io.StringIO(data.decode())
+        with pytest.raises(TypeError):
+            self.read_csv(sio)
+
+    def test_header(self):
+        rows = b"abc,def,gh\n"
+        table = self.read_bytes(rows)
+        assert isinstance(table, pa.Table)
+        self.check_names(table, ["abc", "def", "gh"])
+        assert table.num_rows == 0
+
+    def test_bom(self):
+        rows = b"\xef\xbb\xbfa,b\n1,2\n"
+        expected_data = {'a': [1], 'b': [2]}
+        table = self.read_bytes(rows)
+        assert table.to_pydict() == expected_data
+
+    def test_one_chunk(self):
+        # ARROW-7661: lack of newline at end of file should not produce
+        # an additional chunk.
+        rows = [b"a,b", b"1,2", b"3,4", b"56,78"]
+        for line_ending in [b'\n', b'\r', b'\r\n']:
+            for file_ending in [b'', line_ending]:
+                data = line_ending.join(rows) + file_ending
+                table = self.read_bytes(data)
+                assert len(table.to_batches()) == 1
+                assert table.to_pydict() == {
+                    "a": [1, 3, 56],
+                    "b": [2, 4, 78],
+                }
 
     def test_header_column_names(self):
         rows = b"ab,cd\nef,gh\nij,kl\nmn,op\n"
@@ -691,6 +861,31 @@ class BaseTestCSVRead:
             'f': [None, True, False],
         }
 
+    def test_decimal_point(self):
+        # Infer floats with a custom decimal point
+        parse_options = ParseOptions(delimiter=';')
+        rows = b"a;b\n1.25;2,5\nNA;-3\n-4;NA"
+
+        table = self.read_bytes(rows, parse_options=parse_options)
+        schema = pa.schema([('a', pa.float64()),
+                            ('b', pa.string())])
+        assert table.schema == schema
+        assert table.to_pydict() == {
+            'a': [1.25, None, -4.0],
+            'b': ["2,5", "-3", "NA"],
+        }
+
+        convert_options = ConvertOptions(decimal_point=',')
+        table = self.read_bytes(rows, parse_options=parse_options,
+                                convert_options=convert_options)
+        schema = pa.schema([('a', pa.string()),
+                            ('b', pa.float64())])
+        assert table.schema == schema
+        assert table.to_pydict() == {
+            'a': ["1.25", "NA", "-4"],
+            'b': [2.5, -3.0, None],
+        }
+
     def test_simple_timestamps(self):
         # Infer a timestamp column
         rows = (b"a,b,c\n"
@@ -776,6 +971,33 @@ class BaseTestCSVRead:
         assert table.to_pydict() == {
             'a': [datetime(1970, 1, 1), datetime(1971, 1, 1)],
             'b': [datetime(1970, 1, 2), datetime(1971, 1, 2)],
+        }
+
+    def test_times(self):
+        # Times are inferred as time32[s] by default
+        from datetime import time
+
+        rows = b"a,b\n12:34:56,12:34:56.789\n23:59:59,23:59:59.999\n"
+        table = self.read_bytes(rows)
+        # Column 'b' has subseconds, so cannot be inferred as time32[s]
+        schema = pa.schema([('a', pa.time32('s')),
+                            ('b', pa.string())])
+        assert table.schema == schema
+        assert table.to_pydict() == {
+            'a': [time(12, 34, 56), time(23, 59, 59)],
+            'b': ["12:34:56.789", "23:59:59.999"],
+        }
+
+        # Can ask for time types explicitly
+        opts = ConvertOptions()
+        opts.column_types = {'a': pa.time64('us'), 'b': pa.time32('ms')}
+        table = self.read_bytes(rows, convert_options=opts)
+        schema = pa.schema([('a', pa.time64('us')),
+                            ('b', pa.time32('ms'))])
+        assert table.schema == schema
+        assert table.to_pydict() == {
+            'a': [time(12, 34, 56), time(23, 59, 59)],
+            'b': [time(12, 34, 56, 789000), time(23, 59, 59, 999000)],
         }
 
     def test_auto_dict_encode(self):
@@ -1129,115 +1351,36 @@ class BaseTestCSVRead:
         # ARROW-12622: reader would segfault when the cancelling signal
         # handler was not enabled (e.g. if disabled, or if not on the
         # main thread)
-        t = threading.Thread(target=lambda: self.read_bytes(b"f64\n0.1"))
+        t = threading.Thread(
+            target=lambda: self.read_bytes(b"f64\n0.1"))
         t.start()
         t.join()
 
 
-class TestSerialCSVRead(BaseTestCSVRead, unittest.TestCase):
+class TestSerialCSVTableRead(BaseCSVTableRead):
+    @property
+    def use_threads(self):
+        return False
 
-    def read_csv(self, *args, validate_full=True, **kwargs):
+
+class TestThreadedCSVTableRead(BaseCSVTableRead):
+    @property
+    def use_threads(self):
+        return True
+
+
+class BaseStreamingCSVRead(BaseTestCSV):
+
+    def open_csv(self, csv, *args, **kwargs):
+        """
+        Reads the CSV file into memory using pyarrow's open_csv
+        csv The CSV bytes
+        args Positional arguments to be forwarded to pyarrow's open_csv
+        kwargs Keyword arguments to be forwarded to pyarrow's open_csv
+        """
         read_options = kwargs.setdefault('read_options', ReadOptions())
-        read_options.use_threads = False
-        table = read_csv(*args, **kwargs)
-        table.validate(full=validate_full)
-        return table
-
-    def test_row_numbers_in_errors(self):
-        """ Row numbers are only correctly counted in serial reads """
-        csv, _ = make_random_csv(4, 100, write_names=True)
-
-        read_options = ReadOptions()
-        read_options.block_size = len(csv) / 3
-        convert_options = ConvertOptions()
-        convert_options.column_types = {"a": pa.int32(), "d": pa.int32()}
-
-        # Test without skip_rows and column names in the csv
-        csv_bad_columns = csv + b"1,2\r\n"
-        with pytest.raises(pa.ArrowInvalid,
-                           match="Row #102: Expected 4 columns, got 2"):
-            self.read_bytes(csv_bad_columns, read_options=read_options,
-                            convert_options=convert_options)
-
-        csv_bad_type = csv + b"a,b,c,d\r\n"
-        message_value = ("In CSV column #0: Row #102: " +
-                         "CSV conversion error to int32: invalid value 'a'")
-        with pytest.raises(pa.ArrowInvalid, match=message_value):
-            self.read_bytes(csv_bad_type, read_options=read_options,
-                            convert_options=convert_options)
-
-        long_row = (b"this is a long row" * 15) + b",3\r\n"
-        csv_bad_columns_long = csv + long_row
-        message_long = ("Row #102: Expected 4 columns, got 2: " +
-                        long_row[0:96].decode("utf-8") + " ...")
-        with pytest.raises(pa.ArrowInvalid, match=message_long):
-            self.read_bytes(csv_bad_columns_long, read_options=read_options,
-                            convert_options=convert_options)
-
-        # Test skipping rows after the names
-        read_options.skip_rows_after_names = 47
-
-        with pytest.raises(pa.ArrowInvalid,
-                           match="Row #102: Expected 4 columns, got 2"):
-            self.read_bytes(csv_bad_columns, read_options=read_options,
-                            convert_options=convert_options)
-
-        with pytest.raises(pa.ArrowInvalid, match=message_value):
-            self.read_bytes(csv_bad_type, read_options=read_options,
-                            convert_options=convert_options)
-
-        with pytest.raises(pa.ArrowInvalid, match=message_long):
-            self.read_bytes(csv_bad_columns_long, read_options=read_options,
-                            convert_options=convert_options)
-
-        read_options.skip_rows_after_names = 0
-
-        # Test without skip_rows and column names not in the csv
-        csv, _ = make_random_csv(4, 100, write_names=False)
-        read_options.column_names = ["a", "b", "c", "d"]
-        csv_bad_columns = csv + b"1,2\r\n"
-        with pytest.raises(pa.ArrowInvalid,
-                           match="Row #101: Expected 4 columns, got 2"):
-            self.read_bytes(csv_bad_columns, read_options=read_options,
-                            convert_options=convert_options)
-
-        csv_bad_columns_long = csv + long_row
-        message_long = ("Row #101: Expected 4 columns, got 2: " +
-                        long_row[0:96].decode("utf-8") + " ...")
-        with pytest.raises(pa.ArrowInvalid, match=message_long):
-            self.read_bytes(csv_bad_columns_long, read_options=read_options,
-                            convert_options=convert_options)
-
-        csv_bad_type = csv + b"a,b,c,d\r\n"
-        message_value = ("In CSV column #0: Row #101: " +
-                         "CSV conversion error to int32: invalid value 'a'")
-        with pytest.raises(pa.ArrowInvalid, match=message_value):
-            self.read_bytes(csv_bad_type, read_options=read_options,
-                            convert_options=convert_options)
-
-        # Test with skip_rows and column names not in the csv
-        read_options.skip_rows = 23
-        with pytest.raises(pa.ArrowInvalid,
-                           match="Row #101: Expected 4 columns, got 2"):
-            self.read_bytes(csv_bad_columns, read_options=read_options,
-                            convert_options=convert_options)
-
-        with pytest.raises(pa.ArrowInvalid, match=message_value):
-            self.read_bytes(csv_bad_type, read_options=read_options,
-                            convert_options=convert_options)
-
-
-class TestParallelCSVRead(BaseTestCSVRead, unittest.TestCase):
-
-    def read_csv(self, *args, validate_full=True, **kwargs):
-        read_options = kwargs.setdefault('read_options', ReadOptions())
-        read_options.use_threads = True
-        table = read_csv(*args, **kwargs)
-        table.validate(full=validate_full)
-        return table
-
-
-class BaseTestStreamingCSVRead:
+        read_options.use_threads = self.use_threads
+        return open_csv(csv, *args, **kwargs)
 
     def open_bytes(self, b, **kwargs):
         return self.open_csv(pa.py_buffer(b), **kwargs)
@@ -1250,6 +1393,9 @@ class BaseTestStreamingCSVRead:
             batch.validate(full=True)
             assert batch.schema == expected_schema
             assert batch.to_pydict() == expected_batch
+
+    def read_bytes(self, b, **kwargs):
+        return self.open_bytes(b, **kwargs).read_all()
 
     def test_file_object(self):
         data = b"a,b\n1,2\n3,4\n"
@@ -1309,25 +1455,6 @@ class BaseTestStreamingCSVRead:
         with pytest.raises(StopIteration):
             reader.read_next_batch()
 
-        # Inference on first block, then conversion failure on second block,
-        # then success on third block
-        rows = b"a,b\n1,2\nabc,def\n45,67\n"
-        read_options.block_size = 8
-        reader = self.open_bytes(rows, read_options=read_options)
-        expected_schema = pa.schema([('a', pa.int64()),
-                                     ('b', pa.int64())])
-        assert reader.schema == expected_schema
-        assert reader.read_next_batch().to_pydict() == {'a': [1], 'b': [2]}
-        # Second block
-        with pytest.raises(ValueError,
-                           match="CSV conversion error to int64"):
-            reader.read_next_batch()
-        # Third block
-        assert reader.read_next_batch().to_pydict() == {'a': [45], 'b': [67]}
-        # EOF
-        with pytest.raises(StopIteration):
-            reader.read_next_batch()
-
     def test_invalid_csv(self):
         # CSV errors on first block
         rows = b"a,b\n1,2,3\n4,5\n6,7\n"
@@ -1335,7 +1462,8 @@ class BaseTestStreamingCSVRead:
         read_options.block_size = 10
         with pytest.raises(pa.ArrowInvalid,
                            match="Expected 2 columns, got 3"):
-            reader = self.open_bytes(rows, read_options=read_options)
+            reader = self.open_bytes(
+                rows, read_options=read_options)
 
         # CSV errors on second block
         rows = b"a,b\n1,2\n3,4,5\n6,7\n"
@@ -1495,20 +1623,13 @@ class BaseTestStreamingCSVRead:
                 # Need at least two lines for type inference
                 assert csv[:block_size].count(b'\n') >= 2
                 read_options = ReadOptions(block_size=block_size)
-                reader = self.open_bytes(csv, read_options=read_options)
+                reader = self.open_bytes(
+                    csv, read_options=read_options)
                 table = reader.read_all()
                 assert table.schema == expected.schema
                 if not table.equals(expected):
                     # Better error output
                     assert table.to_pydict() == expected.to_pydict()
-
-
-class TestSerialStreamingCSVRead(BaseTestStreamingCSVRead, unittest.TestCase):
-
-    def open_csv(self, *args, **kwargs):
-        read_options = kwargs.setdefault('read_options', ReadOptions())
-        read_options.use_threads = False
-        return open_csv(*args, **kwargs)
 
     def test_batch_lifetime(self):
         gc.collect()
@@ -1527,16 +1648,59 @@ class TestSerialStreamingCSVRead(BaseTestStreamingCSVRead, unittest.TestCase):
         check_one_batch(reader, {'a': [10], 'b': [11]})
         allocated_after_first_batch = pa.total_allocated_bytes()
         check_one_batch(reader, {'a': [12], 'b': [13]})
-        assert pa.total_allocated_bytes() == allocated_after_first_batch
+        assert pa.total_allocated_bytes() <= allocated_after_first_batch
         check_one_batch(reader, {'a': [14], 'b': [15]})
-        assert pa.total_allocated_bytes() == allocated_after_first_batch
+        assert pa.total_allocated_bytes() <= allocated_after_first_batch
         check_one_batch(reader, {'a': [16], 'b': [17]})
-        assert pa.total_allocated_bytes() == allocated_after_first_batch
+        assert pa.total_allocated_bytes() <= allocated_after_first_batch
         with pytest.raises(StopIteration):
             reader.read_next_batch()
         assert pa.total_allocated_bytes() == old_allocated
         reader = None
         assert pa.total_allocated_bytes() == old_allocated
+
+    def test_header_skip_rows(self):
+        super().test_header_skip_rows()
+
+        rows = b"ab,cd\nef,gh\nij,kl\nmn,op\n"
+
+        # Skipping all rows immediately results in end of iteration
+        opts = ReadOptions()
+        opts.skip_rows = 4
+        opts.column_names = ['ab', 'cd']
+        reader = self.open_bytes(rows, read_options=opts)
+        with pytest.raises(StopIteration):
+            assert reader.read_next_batch()
+
+    def test_skip_rows_after_names(self):
+        super().test_skip_rows_after_names()
+
+        rows = b"ab,cd\nef,gh\nij,kl\nmn,op\n"
+
+        # Skipping all rows immediately results in end of iteration
+        opts = ReadOptions()
+        opts.skip_rows_after_names = 3
+        reader = self.open_bytes(rows, read_options=opts)
+        with pytest.raises(StopIteration):
+            assert reader.read_next_batch()
+
+        # Skipping beyond all rows immediately results in end of iteration
+        opts.skip_rows_after_names = 99999
+        reader = self.open_bytes(rows, read_options=opts)
+        with pytest.raises(StopIteration):
+            assert reader.read_next_batch()
+
+
+class TestSerialStreamingCSVRead(BaseStreamingCSVRead, unittest.TestCase):
+    @property
+    def use_threads(self):
+        return False
+
+
+class TestThreadedStreamingCSVRead(BaseStreamingCSVRead, unittest.TestCase):
+    @property
+    def use_threads(self):
+        return True
 
 
 class BaseTestCompressedCSVRead:
@@ -1617,3 +1781,34 @@ def test_write_read_round_trip():
 
         read_options = ReadOptions(column_names=t.column_names)
         assert t == read_csv(buf, read_options=read_options)
+
+    # Test with writer
+    for read_options, write_options in [
+        (None, WriteOptions(include_header=True)),
+        (ReadOptions(column_names=t.column_names),
+         WriteOptions(include_header=False)),
+    ]:
+        buf = io.BytesIO()
+        with CSVWriter(buf, t.schema, write_options=write_options) as writer:
+            writer.write_table(t)
+        buf.seek(0)
+        assert t == read_csv(buf, read_options=read_options)
+
+        buf = io.BytesIO()
+        with CSVWriter(buf, t.schema, write_options=write_options) as writer:
+            for batch in t.to_batches(max_chunksize=1):
+                writer.write_batch(batch)
+        buf.seek(0)
+        assert t == read_csv(buf, read_options=read_options)
+
+
+def test_read_csv_reference_cycle():
+    # ARROW-13187
+    def inner():
+        buf = io.BytesIO(b"a,b,c\n1,2,3\n4,5,6")
+        table = read_csv(buf)
+        return weakref.ref(table)
+
+    with util.disabled_gc():
+        wr = inner()
+        assert wr() is None

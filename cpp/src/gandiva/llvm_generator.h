@@ -23,17 +23,17 @@
 #include <vector>
 
 #include "arrow/util/macros.h"
-#include "expr_decomposer.h"
-#include "gandiva/base_cache_key.h"
-#include "gandiva/gandiva_object_cache.h"
 #include "gandiva/annotator.h"
+#include "gandiva/base_cache_key.h"
 #include "gandiva/compiled_expr.h"
 #include "gandiva/configuration.h"
 #include "gandiva/dex_visitor.h"
 #include "gandiva/engine.h"
 #include "gandiva/execution_context.h"
+#include "gandiva/expr_decomposer.h"
 #include "gandiva/function_registry.h"
 #include "gandiva/gandiva_aliases.h"
+#include "gandiva/gandiva_object_cache.h"
 #include "gandiva/llvm_types.h"
 #include "gandiva/lvalue.h"
 #include "gandiva/selection_vector.h"
@@ -47,29 +47,36 @@ class FunctionHolder;
 /// Builds an LLVM module and generates code for the specified set of expressions.
 class GANDIVA_EXPORT LLVMGenerator {
  public:
-
   /// \brief Factory method to initialize the generator.
   static Status Make(std::shared_ptr<Configuration> config,
                      std::unique_ptr<LLVMGenerator>* llvm_generator);
 
-  static std::shared_ptr<Cache<BaseCacheKey, std::shared_ptr<llvm::MemoryBuffer>>> GetCache();
+  static std::shared_ptr<Cache<BaseCacheKey, std::shared_ptr<llvm::MemoryBuffer>>>
+  GetCache();
 
   /// \brief Build the code for the expression trees for default mode. Each
   /// element in the vector represents an expression tree
   Status Build(const ExpressionVector& exprs, SelectionVector::Mode mode);
 
-
-  /// \brief Build the code for the expression trees for default mode with a LLVM ObjectCache.
-  /// Each element in the vector represents an expression tree
+  /// \brief Build the code for the expression trees for default mode with a LLVM
+  /// ObjectCache. Each element in the vector represents an expression tree
   template <class KeyType>
   Status Build(const ExpressionVector& exprs, SelectionVector::Mode mode,
-               GandivaObjectCache<KeyType>& obj_cache){
+               GandivaObjectCache<KeyType>& obj_cache) {
     selection_vector_mode_ = mode;
 
+    // Start measuring code gen time
+    auto begin = std::chrono::high_resolution_clock::now();
     for (auto& expr : exprs) {
       auto output = annotator_.AddOutputFieldDescriptor(expr->result());
       ARROW_RETURN_NOT_OK(Add(expr, output));
     }
+
+    // Stop measuring time, calculate the elapsed time and pass it to object cache
+    auto end = std::chrono::high_resolution_clock::now();
+    size_t elapsed =
+        std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count();
+    obj_cache.AddElapsedTime(elapsed);
 
     ARROW_RETURN_NOT_OK(engine_->SetLLVMObjectCache(obj_cache));
 
@@ -86,52 +93,9 @@ class GANDIVA_EXPORT LLVMGenerator {
     return Status::OK();
   }
 
-  /// \brief Build the code for the expression trees for default mode with a LLVM ObjectCache.
-  /// Each element in the vector represents an expression tree
-  template <class KeyType, class CacheType>
-  Status Build(const ExpressionVector& exprs, SelectionVector::Mode mode,
-               GandivaObjectCache<KeyType>& obj_cache,
-               std::vector<std::shared_ptr<KeyType>> expr_cache_keys,
-               CacheType& cache){
-    selection_vector_mode_ = mode;
-
-    for (auto& expr : exprs) {
-      auto output = annotator_.AddOutputFieldDescriptor(expr->result());
-      ARROW_RETURN_NOT_OK(Add(expr, output));
-    }
-
-    ARROW_RETURN_NOT_OK(engine_->SetLLVMObjectCache(obj_cache));
-
-    // Compile and inject into the process' memory the generated function.
-    ARROW_RETURN_NOT_OK(engine_->FinalizeModule());
-
-    for (size_t i = 0; i < compiled_exprs_.size(); ++i) {
-      auto ir_fn = compiled_exprs_[i]->GetIRFunction(mode);
-
-      std::shared_ptr<EvalFunc> cached_expr = cache->GetModule(*expr_cache_keys[i]);
-      if(cached_expr != nullptr) {
-        ARROW_LOG(DEBUG) << "[DEBUG][EXPR-CACHE-LOG]: The expression WAS already cached!";
-        compiled_exprs_[i]->SetJITFunction(selection_vector_mode_, *cached_expr);
-      } else {
-        ARROW_LOG(DEBUG) << "[DEBUG][EXPR-CACHE-LOG]: The expression WAS NOT already cached!";
-        auto jit_fn = reinterpret_cast<EvalFunc>(engine_->CompiledFunction(ir_fn));
-        compiled_exprs_[i]->SetJITFunction(selection_vector_mode_, jit_fn);
-        std::shared_ptr<EvalFunc> to_cache_jit = std::make_shared<EvalFunc>(jit_fn);
-        cache->PutModule(*expr_cache_keys[i], to_cache_jit);
-        ARROW_LOG(DEBUG) << "[DEBUG][EXPR-CACHE-LOG]: The expression has been cached!";
-      }
-
-      ARROW_LOG(DEBUG) << "[DEBUG][EXPR-CACHE-LOG]: " << cache->toString();
-    }
-
-    return Status::OK();
-  }
-
-
   /// \brief Build the code for the expression trees for default mode. Each
   /// element in the vector represents an expression tree
   Status Build(const ExpressionVector& exprs) {
-
     return Build(exprs, SelectionVector::Mode::MODE_NONE);
   }
 
@@ -324,7 +288,6 @@ class GANDIVA_EXPORT LLVMGenerator {
   // used for debug
   bool enable_ir_traces_;
   std::vector<std::string> trace_strings_;
-
 };
 
 }  // namespace gandiva

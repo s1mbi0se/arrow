@@ -74,7 +74,7 @@ MetadataVersion GetMetadataVersion(flatbuf::MetadataVersion version) {
       return MetadataVersion::V2;
     case flatbuf::MetadataVersion::V3:
       // Arrow 0.3 to 0.7.1
-      return MetadataVersion::V4;
+      return MetadataVersion::V3;
     case flatbuf::MetadataVersion::V4:
       // Arrow 0.8 to 0.17
       return MetadataVersion::V4;
@@ -333,6 +333,10 @@ Status ConcreteTypeFromFlatbuffer(flatbuf::Type type, const void* type_data,
           *out = day_time_interval();
           return Status::OK();
         }
+        case flatbuf::IntervalUnit::MONTH_DAY_NANO: {
+          *out = month_day_nano_interval();
+          return Status::OK();
+        }
       }
       return Status::NotImplemented("Unrecognized interval type.");
     }
@@ -584,6 +588,13 @@ class FieldToFlatbufferVisitor {
   Status Visit(const DayTimeIntervalType& type) {
     fb_type_ = flatbuf::Type::Interval;
     type_offset_ = flatbuf::CreateInterval(fbb_, flatbuf::IntervalUnit::DAY_TIME).Union();
+    return Status::OK();
+  }
+
+  Status Visit(const MonthDayNanoIntervalType& type) {
+    fb_type_ = flatbuf::Type::Interval;
+    type_offset_ =
+        flatbuf::CreateInterval(fbb_, flatbuf::IntervalUnit::MONTH_DAY_NANO).Union();
     return Status::OK();
   }
 

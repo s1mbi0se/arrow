@@ -20,13 +20,13 @@
 
 namespace gandiva {
 
-static const size_t DEFAULT_CACHE_SIZE = 128 * 1024 * 1024; //bytes or 256 MiB
+static const size_t DEFAULT_CACHE_SIZE = 128 * 1024 * 1024;  // 256 MiB
 
 size_t GetCapacity() {
   size_t capacity;
   const char* env_cache_size = std::getenv("GANDIVA_CACHE_SIZE");
   if (env_cache_size != nullptr) {
-    capacity = std::stoul(env_cache_size);
+    capacity = std::atoi(env_cache_size);
 
     if (capacity <= 0) {
       ARROW_LOG(WARNING) << "Invalid cache size provided. Using default cache size: "
@@ -36,7 +36,6 @@ size_t GetCapacity() {
   } else {
     capacity = DEFAULT_CACHE_SIZE;
   }
-
 
   return capacity;
 }
