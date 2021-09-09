@@ -42,6 +42,49 @@ add_definitions(-DGANDIVA_LLVM_VERSION=${LLVM_VERSION_MAJOR})
 
 find_package(OpenSSLAlt REQUIRED)
 
+# protobuf
+find_package(Protobuf REQUIRED)
+include_directories(${Protobuf_INCLUDE_DIRS})
+include_directories(${CMAKE_CURRENT_BINARY_DIR})
+
+if(MSVC)
+  add_definitions(-DPROTOBUF_USE_DLLS)
+endif()
+
+set(PROTO_OUTPUT_DIR ${CMAKE_CURRENT_BINARY_DIR})
+set(PROTO_OUTPUT_FILES "${PROTO_OUTPUT_DIR}/gandiva_cache_file.pb.cc")
+set(PROTO_OUTPUT_FILES ${PROTO_OUTPUT_FILES} "${PROTO_OUTPUT_DIR}/gandiva_cache_file.pb.h")
+
+set_source_files_properties(${PROTO_OUTPUT_FILES} PROPERTIES GENERATED TRUE)
+
+
+get_filename_component(ABS_GANDIVA_PROTO_CACHE ${CMAKE_SOURCE_DIR}/src/gandiva/proto/gandiva_cache_file.proto
+        ABSOLUTE)
+
+
+add_custom_command(OUTPUT ${PROTO_OUTPUT_FILES}
+        COMMAND ${ARROW_PROTOBUF_PROTOC}
+        --proto_path
+        ${CMAKE_SOURCE_DIR}/src/gandiva/proto
+        --cpp_out
+        ${PROTO_OUTPUT_DIR}
+        ${CMAKE_SOURCE_DIR}/src/gandiva/proto/gandiva_cache_file.proto
+        DEPENDS ${ABS_GANDIVA_PROTO_CACHE} ${ARROW_PROTOBUF_LIBPROTOBUF}
+        COMMENT "Running PROTO compiler on gandiva_cache_file.proto"
+        VERBATIM)
+
+add_custom_target(gandiva_cache_proto ALL DEPENDS ${PROTO_OUTPUT_FILES})
+
+set(PROTO_SRCS "${PROTO_OUTPUT_DIR}/gandiva_cache_file.pb.cc")
+set(PROTO_HDRS "${PROTO_OUTPUT_DIR}/gandiva_cache_file.pb.h")
+
+set(GANDIVA_LINK_LIBS ${ARROW_PROTOBUF_LIBPROTOBUF})
+if(ARROW_BUILD_STATIC)
+  list(APPEND GANDIVA_LINK_LIBS gandiva_static)
+else()
+  list(APPEND GANDIVA_LINK_LIBS gandiva_shared)
+endif()
+
 # Set the path where the bitcode file generated, see precompiled/CMakeLists.txt
 set(GANDIVA_PRECOMPILED_BC_PATH "${CMAKE_CURRENT_BINARY_DIR}/irhelpers.bc")
 set(GANDIVA_PRECOMPILED_CC_PATH "${CMAKE_CURRENT_BINARY_DIR}/precompiled_bitcode.cc")
@@ -126,6 +169,7 @@ add_arrow_lib(gandiva
               gandiva
               SOURCES
               ${SRC_FILES}
+              ${PROTO_SRCS}
               PRECOMPILED_HEADERS
               "$<$<COMPILE_LANGUAGE:CXX>:gandiva/pch.h>"
               OUTPUTS
@@ -133,18 +177,22 @@ add_arrow_lib(gandiva
               DEPENDENCIES
               arrow_dependencies
               precompiled
+              gandiva_cache_proto
               EXTRA_INCLUDES
               $<TARGET_PROPERTY:LLVM::LLVM_INTERFACE,INTERFACE_INCLUDE_DIRECTORIES>
               ${GANDIVA_OPENSSL_INCLUDE_DIR}
               ${UTF8PROC_INCLUDE_DIR}
+              ${Protobuf_INCLUDE_DIRS}
               SHARED_LINK_FLAGS
               ${GANDIVA_SHARED_LINK_FLAGS}
               SHARED_LINK_LIBS
               arrow_shared
               SHARED_PRIVATE_LINK_LIBS
               ${GANDIVA_SHARED_PRIVATE_LINK_LIBS}
+              ${ARROW_PROTOBUF_LIBPROTOBUF}
               STATIC_LINK_LIBS
-              ${GANDIVA_STATIC_LINK_LIBS})
+              ${GANDIVA_STATIC_LINK_LIBS}
+              ${ARROW_PROTOBUF_LIBPROTOBUF})
 
 foreach(LIB_TARGET ${GANDIVA_LIBRARIES})
   target_compile_definitions(${LIB_TARGET} PRIVATE GANDIVA_EXPORTING)
@@ -154,8 +202,6 @@ endforeach()
 if(ARROW_BUILD_STATIC AND WIN32)
   target_compile_definitions(gandiva_static PUBLIC GANDIVA_STATIC)
 endif()
-
-add_dependencies(gandiva ${GANDIVA_LIBRARIES})
 
 arrow_install_all_headers("gandiva")
 

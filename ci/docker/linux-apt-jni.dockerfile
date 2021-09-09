@@ -56,6 +56,7 @@ RUN apt-get update -y -q && \
         make \
         ninja-build \
         pkg-config \
+        libprotobuf-dev \
         protobuf-compiler \
         rapidjson-dev \
         tzdata \
@@ -82,5 +83,5 @@ ENV ARROW_BUILD_TESTS=OFF \
     CC=gcc \
     CXX=g++ \
     ORC_SOURCE=BUNDLED \
-    PATH=/usr/lib/ccache/:$PATH \
-    Protobuf_SOURCE=BUNDLED
+    Protobuf_SOURCE=BUNDLED \
+    PATH=/usr/lib/ccache/:$PATH
