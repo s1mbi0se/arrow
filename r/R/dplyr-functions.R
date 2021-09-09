@@ -801,7 +801,6 @@ agg_funcs$all <- function(x, na.rm = FALSE) {
     options = list(na.rm = na.rm, na.min_count = 0L)
   )
 }
-
 agg_funcs$mean <- function(x, na.rm = FALSE) {
   list(
     fun = "mean",
@@ -823,5 +822,21 @@ agg_funcs$var <- function(x, na.rm = FALSE, ddof = 1) {
     fun = "variance",
     data = x,
     options = list(ddof = ddof)
+  )
+}
+
+agg_funcs$n_distinct <- function(x, na.rm = FALSE) {
+  list(
+    fun = "count_distinct",
+    data = x,
+    options = list(na.rm = na.rm)
+  )
+}
+
+agg_funcs$n <- function() {
+  list(
+    fun = "sum",
+    data = Expression$scalar(1L),
+    options = list()
   )
 }
