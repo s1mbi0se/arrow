@@ -1754,5 +1754,4 @@ TEST(TestStringOps, TestConvertToBigEndian) {
   }
 #endif
 }
-
 }  // namespace gandiva

@@ -18,6 +18,8 @@
 #include "gandiva/gdv_function_stubs.h"
 
 #include <utf8proc.h>
+#include <jsoncons/json.hpp>
+#include <jsoncons_ext/jsonpath/jsonpath.hpp>
 
 #include <string>
 #include <vector>
@@ -791,6 +793,64 @@ const char* gdv_fn_initcap_utf8(int64_t context, const char* data, int32_t data_
 
   *out_len = out_idx;
   return out;
+}
+// An implementation of jsonpath to work with json similarly to xpath.
+//
+// It follows the Stefan Goessner's JSONPath standard:
+// http://goessner.net/articles/JsonPath/
+GANDIVA_EXPORT
+const char* gdv_fn_get_json_object(gdv_int64 context, const char* search_text,
+                                   gdv_int32 search_len, const char* json_text,
+                                   gdv_int32 json_len, gdv_int32* out_len) {
+  std::string search_string(search_text, search_len);
+  std::string json_string(json_text, json_len);
+
+  // if there is no json string return null
+  if (json_len == 0 || json_text == nullptr) {
+    *out_len = 0;
+    return "";
+  }
+
+  // if there is no json search text return the entire object
+  if (search_len == 0 || search_text == nullptr) {
+    *out_len = 0;
+    return "";
+  }
+
+  jsoncons::json json;
+
+  try {
+    json = jsoncons::json::parse(json_string);
+  } catch (...) {
+    gdv_fn_context_set_error_msg(context, "Invalid json text");
+    *out_len = 0;
+    return "";
+  }
+
+  jsoncons::json result;
+
+  try {
+    result = jsoncons::jsonpath::json_query(json, search_string);
+  } catch (...) {
+    gdv_fn_context_set_error_msg(context, "Invalid jsonpath search query");
+    *out_len = 0;
+    return "";
+  }
+
+  // prevents nullptr when the result.to_string().c_str() finishes the expression;
+  std::string json_result = result.to_string();
+
+  *out_len = strlen(json_result.c_str());
+
+  // try to allocate memory for the response
+  char* ret = reinterpret_cast<char*>(gdv_fn_context_arena_malloc(context, *out_len));
+  if (ret == nullptr) {
+    gdv_fn_context_set_error_msg(context, "Could not allocate memory for output string.");
+    *out_len = 0;
+    return "";
+  }
+  memcpy(ret, json_result.c_str(), *out_len);
+  return ret;
 }
 }
 
@@ -1597,5 +1657,19 @@ void ExportedStubFunctions::AddMappings(Engine* engine) const {
   engine->AddGlobalMappingForFunc("gdv_fn_initcap_utf8",
                                   types->i8_ptr_type() /*return_type*/, args,
                                   reinterpret_cast<void*>(gdv_fn_initcap_utf8));
+
+  // gdv_fn_get_json_object
+  args = {
+      types->i64_type(),      // context
+      types->i8_ptr_type(),   // search_data
+      types->i32_type(),      // search_length
+      types->i8_ptr_type(),   // json_data
+      types->i32_type(),      // json_length
+      types->i32_ptr_type(),  // out_len
+  };
+
+  engine->AddGlobalMappingForFunc("gdv_fn_get_json_object",
+                                  types->i8_ptr_type() /*return_type*/, args,
+                                  reinterpret_cast<void*>(gdv_fn_get_json_object));
 }
 }  // namespace gandiva

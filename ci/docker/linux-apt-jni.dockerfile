@@ -63,6 +63,15 @@ RUN apt-get update -y -q && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
+ARG jsoncons
+RUN git clone https://github.com/danielaparker/jsoncons.git && \
+    cd jsoncons && \
+    mkdir build && \
+    cd build && \
+    cmake .. && \
+    make && \
+    make install
+
 ARG cmake=3.11.4
 RUN wget -nv -O - https://github.com/Kitware/CMake/releases/download/v${cmake}/cmake-${cmake}-Linux-x86_64.tar.gz | tar -xzf - -C /opt
 ENV PATH=/opt/cmake-${cmake}-Linux-x86_64/bin:$PATH

@@ -19,6 +19,15 @@ ARG repo
 ARG arch
 FROM ${repo}:${arch}-conda-cpp
 
+ARG jsoncons
+RUN git clone https://github.com/danielaparker/jsoncons.git && \
+    cd jsoncons && \
+    mkdir build && \
+    cd build && \
+    cmake .. && \
+    make && \
+    make install
+
 # install python specific packages
 ARG python=3.6
 COPY ci/conda_env_python.txt /arrow/ci/

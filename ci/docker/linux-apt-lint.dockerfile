@@ -40,6 +40,16 @@ RUN apt-get update && \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
+# Jsoncon is used for Gandiva's get json object function
+ARG jsoncons
+RUN git clone https://github.com/danielaparker/jsoncons.git && \
+    cd jsoncons && \
+    mkdir build && \
+    cd build && \
+    cmake .. && \
+    make && \
+    make install
+
 ARG r=4.1
 RUN apt-key adv \
         --keyserver keyserver.ubuntu.com \

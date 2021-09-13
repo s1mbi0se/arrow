@@ -20,6 +20,15 @@ ARG arch=amd64
 ARG python=3.6
 FROM ${repo}:${arch}-conda-python-${python}
 
+ARG jsoncons
+RUN git clone https://github.com/danielaparker/jsoncons.git && \
+    cd jsoncons && \
+    mkdir build && \
+    cd build && \
+    cmake .. && \
+    make && \
+    make install
+
 ARG pandas=latest
 ARG numpy=latest
 COPY ci/scripts/install_pandas.sh /arrow/ci/scripts/

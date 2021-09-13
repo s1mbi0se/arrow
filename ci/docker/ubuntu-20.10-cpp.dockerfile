@@ -96,6 +96,15 @@ RUN apt-get update -y -q && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists*
 
+ARG jsoncons
+RUN git clone https://github.com/danielaparker/jsoncons.git && \
+    cd jsoncons && \
+    mkdir build && \
+    cd build && \
+    cmake .. && \
+    make && \
+    make install
+
 COPY ci/scripts/install_minio.sh \
      /arrow/ci/scripts/
 RUN /arrow/ci/scripts/install_minio.sh ${arch} linux latest /usr/local

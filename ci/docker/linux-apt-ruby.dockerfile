@@ -19,6 +19,15 @@
 ARG base
 FROM ${base}
 
+ARG jsoncons
+RUN git clone https://github.com/danielaparker/jsoncons.git && \
+    cd jsoncons && \
+    mkdir build && \
+    cd build && \
+    cmake .. && \
+    make && \
+    make install
+
 COPY ruby/ /arrow/ruby/
 RUN bundle install --gemfile /arrow/ruby/Gemfile
 RUN \

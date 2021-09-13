@@ -49,6 +49,15 @@ fi
 mkdir -p ${build_dir}
 pushd ${build_dir}
 
+# installing jsoncons
+git clone https://github.com/danielaparker/jsoncons.git && \
+    cd jsoncons && \
+    mkdir build && \
+    cd build && \
+    cmake .. && \
+    make && \
+    make install
+
 cmake -G "${CMAKE_GENERATOR:-Ninja}" \
       -DARROW_BOOST_USE_SHARED=${ARROW_BOOST_USE_SHARED:-ON} \
       -DARROW_BUILD_BENCHMARKS=${ARROW_BUILD_BENCHMARKS:-OFF} \
