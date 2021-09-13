@@ -41,6 +41,7 @@ RUN apt-get update && \
     && rm -rf /var/lib/apt/lists/*
 
 # Jsoncon is used for Gandiva's get json object function
+ARG jsoncons
 RUN git clone https://github.com/danielaparker/jsoncons.git && \
     cd jsoncons && \
     mkdir build && \
