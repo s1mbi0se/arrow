@@ -406,7 +406,12 @@ std::vector<NativeFunction> GetStringFunctionRegistry() {
 
       NativeFunction("split_part", {}, DataTypeVector{utf8(), utf8(), int32()}, utf8(),
                      kResultNullIfNull, "split_part",
-                     NativeFunction::kNeedsContext | NativeFunction::kCanReturnErrors)};
+                     NativeFunction::kNeedsContext | NativeFunction::kCanReturnErrors),
+
+      NativeFunction("get_json_object", {}, DataTypeVector{utf8(), utf8()}, utf8(),
+                    kResultNullIfNull, "get_json_object",
+                    NativeFunction::kNeedsContext | NativeFunction::kCanReturnErrors)};
+
 
   return string_fn_registry_;
 }

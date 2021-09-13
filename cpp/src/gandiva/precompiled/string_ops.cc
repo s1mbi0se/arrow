@@ -17,6 +17,8 @@
 
 // String functions
 #include "arrow/util/value_parsing.h"
+#include <jsoncons/json.hpp>
+#include <jsoncons_ext/jsonpath/jsonpath.hpp>
 
 extern "C" {
 
@@ -2193,6 +2195,55 @@ const char* byte_substr_binary_int32_int32(gdv_int64 context, const char* text,
   }
 
   memcpy(ret, text + startPos, *out_len);
+  return ret;
+}
+
+FORCE_INLINE
+const char* get_json_object(gdv_int64 context, const char* search_text,
+                            gdv_int32 search_text_len, const char* json_text,
+                            gdv_int32 json_text_len, gdv_int32* out_len) {
+
+  std::string search_string(search_text);
+
+  // if there is no json string return null
+  if (json_text_len == 0 || json_text == nullptr) {
+    *out_len = 0;
+    return "";
+  }
+
+  // if there is no json search text return the entire object
+  if (search_text_len == 0 || search_text == nullptr) {
+    *out_len = 0;
+    return "";
+  }
+
+  jsoncons::json json = jsoncons::json::parse(json_text);
+  jsoncons::json result;
+
+  try {
+    result = jsoncons::jsonpath::json_query(json,search_string);
+  } catch (...) {
+    gdv_fn_context_set_error_msg(context, "Invalid jsonpath search query");
+    *out_len = 0;
+    return "";
+  }
+
+  // prevents nullptr when the result.to_string().c_str() finishes the expression;
+  std::string json_result = result.to_string();
+
+  *out_len = strlen(json_result.c_str());
+
+  const void* search_result = json_result.c_str();
+
+  // try to allocate memory for the response
+  char* ret =
+      reinterpret_cast<gdv_binary>(gdv_fn_context_arena_malloc(context, *out_len));
+  if (ret == nullptr) {
+    gdv_fn_context_set_error_msg(context, "Could not allocate memory for output string.");
+    *out_len = 0;
+    return "";
+  }
+  memcpy(ret, search_result, *out_len);
   return ret;
 }
 }  // extern "C"
