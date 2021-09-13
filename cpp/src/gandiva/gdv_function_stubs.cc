@@ -17,9 +17,9 @@
 
 #include "gandiva/gdv_function_stubs.h"
 
+#include <utf8proc.h>
 #include <jsoncons/json.hpp>
 #include <jsoncons_ext/jsonpath/jsonpath.hpp>
-#include <utf8proc.h>
 
 #include <string>
 #include <vector>
@@ -796,9 +796,11 @@ const char* gdv_fn_initcap_utf8(int64_t context, const char* data, int32_t data_
 }
 // An implementation of jsonpath to work with json similarly to xpath.
 //
-// It follows the Stefan Goessner's JSONPath standard: http://goessner.net/articles/JsonPath/
+// It follows the Stefan Goessner's JSONPath standard:
+// http://goessner.net/articles/JsonPath/
 GANDIVA_EXPORT
-const char* gdv_fn_get_json_object(gdv_int64 context, const char* search_text, const char* json_text, gdv_int32* out_len) {
+const char* gdv_fn_get_json_object(gdv_int64 context, const char* search_text,
+                                   const char* json_text, gdv_int32* out_len) {
   std::string search_string(search_text);
 
   gdv_int32 json_text_len = strlen(json_text);
