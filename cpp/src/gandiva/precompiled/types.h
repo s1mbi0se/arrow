@@ -541,10 +541,6 @@ const char* right_utf8_int32(gdv_int64 context, const char* text, gdv_int32 text
 const char* binary_string(gdv_int64 context, const char* text, gdv_int32 text_len,
                           gdv_int32* out_len);
 
-const char* get_json_object(gdv_int64 context, const char* search_text,
-                            gdv_int32 search_text_len, const char* json_text,
-                            gdv_int32 json_text_len, gdv_int32* out_len);
-
 int32_t castINT_utf8(int64_t context, const char* data, int32_t len);
 
 int64_t castBIGINT_utf8(int64_t context, const char* data, int32_t len);

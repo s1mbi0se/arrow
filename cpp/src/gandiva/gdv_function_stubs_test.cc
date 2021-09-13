@@ -766,4 +766,68 @@ TEST(TestGdvFnStubs, TestCastVarbinaryFloat8) {
   ctx.Reset();
 }
 
+
+TEST(TestGdvFnStubs, TestGetJsonObject) {
+  gandiva::ExecutionContext ctx;
+  uint64_t ctx_ptr = reinterpret_cast<gdv_int64>(&ctx);
+  gdv_int32 out_len = 0;
+  const char* out_str;
+
+  const char* json_str =
+      "[\n"
+      "  {\n"
+      "    \"id\": 1,\n"
+      "    \"name\": \"John Doe\",\n"
+      "    \"favorite_fruits\": [\"mango\", \"banana\"]\n"
+      "  },\n"
+      "    {\n"
+      "    \"id\": 2,\n"
+      "    \"name\": \"Mary Doe\",\n"
+      "    \"favorite_fruits\": [\"grapefruit\", \"pineapple\"]\n"
+      "  }\n"
+      "]";
+
+  const char* search_str1 = "$.*.id";
+
+  out_str =
+      gdv_fn_get_json_object(ctx_ptr, search_str1, json_str, &out_len);
+  EXPECT_EQ(std::string(out_str, out_len), "[1,2]");
+  EXPECT_FALSE(ctx.has_error());
+
+  const char* search_str2 = "$.1.name";
+
+  out_str =
+      gdv_fn_get_json_object(ctx_ptr, search_str2, json_str, &out_len);
+  EXPECT_EQ(std::string(out_str, out_len), "[\"Mary Doe\"]");
+  EXPECT_FALSE(ctx.has_error());
+
+  const char* search_str3 = "$.1.favorite_fruits[0]";
+
+  out_str =
+      gdv_fn_get_json_object(ctx_ptr, search_str3, json_str, &out_len);
+  EXPECT_EQ(std::string(out_str, out_len), "[\"grapefruit\"]");
+  EXPECT_FALSE(ctx.has_error());
+
+  const char* json_empty_str = "";
+  const char* search_str4 = "$.1.favorite_fruits[0]";
+
+  out_str = gdv_fn_get_json_object(ctx_ptr, search_str4, json_empty_str, &out_len);
+  EXPECT_EQ(std::string(out_str, out_len), "");
+  EXPECT_FALSE(ctx.has_error());
+
+  const char* search_str5 = "";
+
+  out_str =
+      gdv_fn_get_json_object(ctx_ptr, search_str5, json_str, &out_len);
+  EXPECT_EQ(std::string(out_str, out_len), "");
+  EXPECT_FALSE(ctx.has_error());
+
+  const char* search_str6 = "$.";
+
+  out_str =
+      gdv_fn_get_json_object(ctx_ptr, search_str6, json_str, &out_len);
+  EXPECT_EQ(std::string(out_str, out_len), "");
+  EXPECT_THAT(ctx.get_error(), ::testing::HasSubstr("Invalid jsonpath search query"));
+  ctx.Reset();
+}
 }  // namespace gandiva

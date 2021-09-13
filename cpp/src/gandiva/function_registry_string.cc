@@ -409,7 +409,7 @@ std::vector<NativeFunction> GetStringFunctionRegistry() {
                      NativeFunction::kNeedsContext | NativeFunction::kCanReturnErrors),
 
       NativeFunction("get_json_object", {}, DataTypeVector{utf8(), utf8()}, utf8(),
-                     kResultNullIfNull, "get_json_object",
+                     kResultNullIfNull, "gdv_fn_get_json_object",
                      NativeFunction::kNeedsContext | NativeFunction::kCanReturnErrors)};
 
   return string_fn_registry_;
