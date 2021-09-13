@@ -800,20 +800,18 @@ const char* gdv_fn_initcap_utf8(int64_t context, const char* data, int32_t data_
 // http://goessner.net/articles/JsonPath/
 GANDIVA_EXPORT
 const char* gdv_fn_get_json_object(gdv_int64 context, const char* search_text,
-                                   const char* json_text, gdv_int32* out_len) {
+                                   gdv_int32 search_len, const char* json_text,
+                                   gdv_int32 json_len, gdv_int32* out_len) {
   std::string search_string(search_text);
 
-  gdv_int32 json_text_len = strlen(json_text);
-  gdv_int32 search_text_len = strlen(search_text);
-
   // if there is no json string return null
-  if (json_text_len == 0 || json_text == nullptr) {
+  if (json_len == 0 || json_text == nullptr) {
     *out_len = 0;
     return "";
   }
 
   // if there is no json search text return the entire object
-  if (search_text_len == 0 || search_text == nullptr) {
+  if (search_len == 0 || search_text == nullptr) {
     *out_len = 0;
     return "";
   }
@@ -834,17 +832,14 @@ const char* gdv_fn_get_json_object(gdv_int64 context, const char* search_text,
 
   *out_len = strlen(json_result.c_str());
 
-  const void* search_result = json_result.c_str();
-
   // try to allocate memory for the response
-  char* ret =
-      reinterpret_cast<gdv_binary>(gdv_fn_context_arena_malloc(context, *out_len));
+  char* ret = reinterpret_cast<char*>(gdv_fn_context_arena_malloc(context, *out_len));
   if (ret == nullptr) {
     gdv_fn_context_set_error_msg(context, "Could not allocate memory for output string.");
     *out_len = 0;
     return "";
   }
-  memcpy(ret, search_result, *out_len);
+  memcpy(ret, json_result.c_str(), *out_len);
   return ret;
 }
 }
@@ -1657,12 +1652,14 @@ void ExportedStubFunctions::AddMappings(Engine* engine) const {
   args = {
       types->i64_type(),      // context
       types->i8_ptr_type(),   // search_data
+      types->i32_type(),      // search_length
       types->i8_ptr_type(),   // json_data
+      types->i32_type(),      // json_length
       types->i32_ptr_type(),  // out_len
   };
 
   engine->AddGlobalMappingForFunc("gdv_fn_get_json_object",
                                   types->i8_ptr_type() /*return_type*/, args,
-                                  reinterpret_cast<void*>(gdv_fn_upper_utf8));
+                                  reinterpret_cast<void*>(gdv_fn_get_json_object));
 }
 }  // namespace gandiva

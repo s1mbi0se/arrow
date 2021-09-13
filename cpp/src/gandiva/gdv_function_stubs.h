@@ -172,6 +172,7 @@ GANDIVA_EXPORT
 double gdv_fn_castFLOAT8_varbinary(gdv_int64 context, const char* in, int32_t in_len);
 
 GANDIVA_EXPORT
-const char* gdv_fn_get_json_object(gdv_int64 context, const char* search_text,
-                                   const char* json_text, gdv_int32* out_len);
+const char* gdv_fn_get_json_object(int64_t context, const char* search_text,
+                                   int32_t search_len, const char* json_text,
+                                   int32_t json_len, int32_t* out_len);
 }

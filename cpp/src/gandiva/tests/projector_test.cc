@@ -1606,4 +1606,93 @@ TEST_F(TestProjector, TestCastNullableIntYearInterval) {
   EXPECT_ARROW_ARRAY_EQUALS(out_int64, outputs.at(1));
 }
 
+TEST_F(TestProjector, TestGetJsonObject) {
+  // schema for input fields
+  auto field0 = field("f0", arrow::utf8());
+  auto field1 = field("f1", arrow::utf8());
+  auto schema = arrow::schema({field0, field1});
+
+  // output fields
+  auto field_get_json_object = field("get_json_object", arrow::utf8());
+
+  auto get_json_object_expr = TreeExprBuilder::MakeExpression(
+      "get_json_object", {field0, field1}, field_get_json_object);
+
+  std::shared_ptr<Projector> projector;
+  auto status =
+      Projector::Make(schema, {get_json_object_expr}, TestConfiguration(), &projector);
+  EXPECT_TRUE(status.ok()) << status.message();
+
+  // Create a row-batch with some sample data
+  const char* json_str1 =
+      "[\n"
+      "  {\n"
+      "    \"id\": 1,\n"
+      "    \"name\": \"John Doe\",\n"
+      "    \"favorite_fruits\": [\"mango\", \"banana\"]\n"
+      "  },\n"
+      "    {\n"
+      "    \"id\": 2,\n"
+      "    \"name\": \"Mary Doe\",\n"
+      "    \"favorite_fruits\": [\"grapefruit\", \"pineapple\"]\n"
+      "  }\n"
+      "]";
+
+  // TODO: investigate why projector is concatenating both search_text and json_text
+
+  //  const char* json_str2 =
+  //      "[\n"
+  //      "  {\n"
+  //      "    \"id\": 1,\n"
+  //      "    \"name\": \"John Doe\",\n"
+  //      "    \"favorite_fruits\": [\"mango\", \"banana\"]\n"
+  //      "  },\n"
+  //      "    {\n"
+  //      "    \"id\": 2,\n"
+  //      "    \"name\": \"Mary Doe\",\n"
+  //      "    \"favorite_fruits\": [\"grapefruit\", \"pineapple\"]\n"
+  //      "  }\n"
+  //      "]";
+
+  //  const char* json_str3 =
+  //      "[\n"
+  //      "  {\n"
+  //      "    \"id\": 1,\n"
+  //      "    \"name\": \"John Doe\",\n"
+  //      "    \"favorite_fruits\": [\"mango\", \"banana\"]\n"
+  //      "  },\n"
+  //      "    {\n"
+  //      "    \"id\": 2,\n"
+  //      "    \"name\": \"Mary Doe\",\n"
+  //      "    \"favorite_fruits\": [\"grapefruit\", \"pineapple\"]\n"
+  //      "  }\n"
+  //      "]";
+
+  int num_records = 1;
+
+  //  auto array0 = MakeArrowArrayUtf8({"$.*.id", "$.1.name"}, {true, true});
+  //  auto array1 = MakeArrowArrayUtf8({json_str1, json_str2}, {true, true});
+  //
+  //  // expected output
+  //  auto exp_get_json_object =
+  //      MakeArrowArrayUtf8({"[1,2]", "[\"Mary Doe\"]"}, {true, true});
+
+  auto array0 = MakeArrowArrayUtf8({"$.*.id"}, {true, true});
+  auto array1 = MakeArrowArrayUtf8({json_str1}, {true, true});
+
+  // expected output
+  auto exp_get_json_object = MakeArrowArrayUtf8({"[1,2]"}, {true, true});
+
+  // prepare input record batch
+  auto in = arrow::RecordBatch::Make(schema, num_records, {array0, array1});
+
+  // Evaluate expression
+  arrow::ArrayVector outputs;
+  status = projector->Evaluate(*in, pool_, &outputs);
+  EXPECT_TRUE(status.ok()) << status.message();
+
+  // Validate results
+  EXPECT_ARROW_ARRAY_EQUALS(exp_get_json_object, outputs.at(0));
+}
+
 }  // namespace gandiva
