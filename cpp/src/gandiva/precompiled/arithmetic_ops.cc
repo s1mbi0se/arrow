@@ -223,6 +223,22 @@ NUMERIC_FUNCTION(DIVIDE)
 
 #undef DIVIDE
 
+#define POSITIVE(TYPE) \
+  FORCE_INLINE         \
+  gdv_##TYPE positive_##TYPE(gdv_##TYPE in) { return in; }
+
+NUMERIC_FUNCTION(POSITIVE)
+
+#undef POSITIVE
+
+#define NEGATIVE(TYPE) \
+  FORCE_INLINE         \
+  gdv_##TYPE negative_##TYPE(gdv_##TYPE in) { return static_cast<gdv_##TYPE>(-1 * in); }
+
+NUMERIC_FUNCTION(NEGATIVE)
+
+#undef NEGATIVE
+
 #define DIV(TYPE)                                                                     \
   FORCE_INLINE                                                                        \
   gdv_##TYPE div_##TYPE##_##TYPE(gdv_int64 context, gdv_##TYPE in1, gdv_##TYPE in2) { \

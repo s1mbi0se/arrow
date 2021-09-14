@@ -779,6 +779,55 @@ TEST_F(TestProjector, TestModZero) {
   EXPECT_ARROW_ARRAY_EQUALS(exp_mod, outputs.at(0));
 }
 
+TEST_F(TestProjector, TestPositiveNegative) {
+  // schema for input fields
+  auto field0 = field("f0", int32());
+  auto schema = arrow::schema({field0});
+
+  // output fields
+  auto field_pos = field("positive", int32());
+
+  // Build expression for POSITIVE function
+  auto pos_expr = TreeExprBuilder::MakeExpression("positive", {field0}, field_pos);
+
+  std::shared_ptr<Projector> projector;
+  auto status = Projector::Make(schema, {pos_expr}, TestConfiguration(), &projector);
+  EXPECT_TRUE(status.ok()) << status.message();
+
+  // Create a row-batch with some sample data
+  int num_records = 4;
+  auto array0 = MakeArrowArrayInt32({2, 3, 4, 5}, {true, true, true, true});
+  // expected output
+  auto exp_pos = MakeArrowArrayInt32({2, 3, 4, 5}, {true, true, true, true});
+
+  // prepare input record batch
+  auto in_batch = arrow::RecordBatch::Make(schema, num_records, {array0});
+
+  // Evaluate expression
+  arrow::ArrayVector outputs;
+  status = projector->Evaluate(*in_batch, pool_, &outputs);
+  EXPECT_TRUE(status.ok()) << status.message();
+
+  // Validate results
+  EXPECT_ARROW_ARRAY_EQUALS(exp_pos, outputs.at(0));
+
+  // Build expression for NEG function
+  auto neg_expr = TreeExprBuilder::MakeExpression("negative", {field0}, field_pos);
+
+  status = Projector::Make(schema, {neg_expr}, TestConfiguration(), &projector);
+  EXPECT_TRUE(status.ok()) << status.message();
+
+  // expected output
+  auto exp_neg = MakeArrowArrayInt32({-2, -3, -4, -5}, {true, true, true, true});
+
+  // Evaluate expression
+  status = projector->Evaluate(*in_batch, pool_, &outputs);
+  EXPECT_TRUE(status.ok()) << status.message();
+
+  // Validate results
+  EXPECT_ARROW_ARRAY_EQUALS(exp_neg, outputs.at(0));
+}
+
 TEST_F(TestProjector, TestConcat) {
   // schema for input fields
   auto field0 = field("f0", arrow::utf8());

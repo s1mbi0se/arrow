@@ -107,6 +107,16 @@ std::vector<NativeFunction> GetArithmeticFunctionRegistry() {
       BINARY_GENERIC_SAFE_NULL_IF_NULL(round, {}, int32, int32, int32),
       BINARY_GENERIC_SAFE_NULL_IF_NULL(round, {}, int64, int32, int64),
 
+      // positive and negative functions
+      UNARY_SAFE_NULL_IF_NULL(positive, {}, int32, int32),
+      UNARY_SAFE_NULL_IF_NULL(positive, {}, int64, int64),
+      UNARY_SAFE_NULL_IF_NULL(positive, {}, float32, float32),
+      UNARY_SAFE_NULL_IF_NULL(positive, {}, float64, float64),
+      UNARY_SAFE_NULL_IF_NULL(negative, {}, int32, int32),
+      UNARY_SAFE_NULL_IF_NULL(negative, {}, int64, int64),
+      UNARY_SAFE_NULL_IF_NULL(negative, {}, float32, float32),
+      UNARY_SAFE_NULL_IF_NULL(negative, {}, float64, float64),
+
       // compare functions
       BINARY_RELATIONAL_BOOL_FN(equal, ({"eq", "same"})),
       BINARY_RELATIONAL_BOOL_FN(not_equal, {}),

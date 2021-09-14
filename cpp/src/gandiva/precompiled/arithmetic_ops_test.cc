@@ -61,6 +61,28 @@ TEST(TestArithmeticOps, TestMod) {
   EXPECT_FALSE(context.has_error());
 }
 
+TEST(TestArithmeticOps, TestPositiveNegative) {
+  EXPECT_EQ(positive_int32(10), 10);
+  EXPECT_EQ(positive_int64(1000), 1000);
+  EXPECT_EQ(positive_float32(1.500f), 1.500f);
+  EXPECT_EQ(positive_float64(10.500f), 10.500f);
+
+  EXPECT_EQ(negative_int32(10), -10);
+  EXPECT_EQ(negative_int64(1000), -1000);
+  EXPECT_EQ(negative_float32(1.500f), -1.500f);
+  EXPECT_EQ(negative_float64(10.500f), -10.500f);
+
+  EXPECT_EQ(positive_int32(-10), -10);
+  EXPECT_EQ(positive_int64(-1000), -1000);
+  EXPECT_EQ(positive_float32(-1.500f), -1.500f);
+  EXPECT_EQ(positive_float64(-10.500f), -10.500f);
+
+  EXPECT_EQ(negative_int32(-10), 10);
+  EXPECT_EQ(negative_int64(-1000), 1000);
+  EXPECT_EQ(negative_float32(-1.500f), 1.500f);
+  EXPECT_EQ(negative_float64(-10.500f), 10.500f);
+}
+
 TEST(TestArithmeticOps, TestDivide) {
   gandiva::ExecutionContext context;
   EXPECT_EQ(divide_int64_int64(reinterpret_cast<gdv_int64>(&context), 10, 0), 0);
