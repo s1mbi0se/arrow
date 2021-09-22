@@ -170,4 +170,9 @@ float gdv_fn_castFLOAT4_varbinary(gdv_int64 context, const char* in, int32_t in_
 
 GANDIVA_EXPORT
 double gdv_fn_castFLOAT8_varbinary(gdv_int64 context, const char* in, int32_t in_len);
+
+GANDIVA_EXPORT
+gdv_int64 gdv_fn_datediff_utf8_utf8(gdv_int64 context, const char* timestamp_end,
+                                    gdv_int64 timestamp_end_length, const char* timestamp_start,
+                                    gdv_int64 timestamp_start_length);
 }

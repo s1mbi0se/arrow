@@ -19,6 +19,7 @@
 
 #include <utf8proc.h>
 
+#include <iomanip>
 #include <string>
 #include <vector>
 
@@ -792,6 +793,38 @@ const char* gdv_fn_initcap_utf8(int64_t context, const char* data, int32_t data_
   *out_len = out_idx;
   return out;
 }
+
+GANDIVA_EXPORT
+gdv_int64 gdv_fn_datediff_utf8_utf8(gdv_int64 context, const char* data_timestamp_end,
+                             gdv_int64 timestamp_end_length, const char* data_timestamp_start,
+                             gdv_int64 timestamp_start_length) {
+  if (timestamp_start_length <= 0 || timestamp_end_length <= 0) {
+    return 0;
+  }
+
+  std::string timestamp_end(data_timestamp_end, timestamp_end_length);
+  std::string timestamp_start(data_timestamp_start, timestamp_start_length);
+
+  std::tm date_end = {};
+  std::stringstream ss_end(timestamp_end);
+  if (timestamp_end_length == 10) {
+    ss_end >> std::get_time(&date_end, "%Y-%m-%d");
+  } else {
+    ss_end >> std::get_time(&date_end, "%Y-%m-%d %H:%M:%S");
+  }
+
+  std::tm date_start = {};
+  std::stringstream ss_start(timestamp_start);
+  if (timestamp_start_length == 10) {
+    ss_start >> std::get_time(&date_start, "%Y-%m-%d");
+  } else {
+    ss_start >> std::get_time(&date_start, "%Y-%m-%d %H:%M:%S");
+  }
+
+  gdv_int64 diff = date_end.tm_mon - date_start.tm_mon;
+  return diff;
+}
+
 }
 
 namespace gandiva {
@@ -1597,5 +1630,18 @@ void ExportedStubFunctions::AddMappings(Engine* engine) const {
   engine->AddGlobalMappingForFunc("gdv_fn_initcap_utf8",
                                   types->i8_ptr_type() /*return_type*/, args,
                                   reinterpret_cast<void*>(gdv_fn_initcap_utf8));
+
+  // gdv_fn_datediff_utf8_utf8
+  args = {
+      types->i64_type(),     // context
+      types->i8_ptr_type(),  // date_end_str
+      types->i32_type(),     // date_end_str_length
+      types->i8_ptr_type(),  // date_start_str
+      types->i32_type(),     // date_start_str_length
+  };
+
+  engine->AddGlobalMappingForFunc("gdv_fn_datediff_utf8_utf8",
+                                  types->i64_type() /*return_type*/, args,
+                                  reinterpret_cast<void*>(gdv_fn_datediff_utf8_utf8));
 }
 }  // namespace gandiva

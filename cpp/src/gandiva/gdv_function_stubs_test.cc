@@ -766,4 +766,21 @@ TEST(TestGdvFnStubs, TestCastVarbinaryFloat8) {
   ctx.Reset();
 }
 
+TEST(TestGdvFnStubs, TestDateDiff) {
+  ExecutionContext context;
+  int64_t context_ptr = reinterpret_cast<int64_t>(&context);
+
+  auto diff = gdv_fn_datediff_utf8_utf8(context_ptr, "2021-10-15", 10, "2021-09-15", 10);
+  EXPECT_EQ(diff, 1);
+
+  diff = gdv_fn_datediff_utf8_utf8(context_ptr, "2021-09-15 09:45:30", 19, "2021-10-15 09:45:30", 19);
+  EXPECT_EQ(diff, -1);
+
+  diff = gdv_fn_datediff_utf8_utf8(context_ptr, "", 0, "2021-10-15", 10);
+  EXPECT_EQ(diff, 0);
+
+  diff = gdv_fn_datediff_utf8_utf8(context_ptr, "2021-09-15", 10, "", 0);
+  EXPECT_EQ(diff, 0);
+}
+
 }  // namespace gandiva
