@@ -1665,4 +1665,68 @@ TEST_F(TestProjector, TestDatediff) {
   EXPECT_ARROW_ARRAY_EQUALS(expec_out, outputs1.at(0));
 }
 
+TEST_F(TestProjector, TestAddMonths) {
+  // input fields
+  auto field0 = field("f0", arrow::int32());
+  auto field1 = field("f1", arrow::date64());
+  auto schema0 = arrow::schema({field0, field1});
+  auto field2 = field("f2", int32());
+  auto field3 = field("f3", timestamp(arrow::TimeUnit::MILLI));
+  auto schema1 = arrow::schema({field2, field3});
+
+  // output fields
+  auto out_field = field("res", arrow::int64());
+
+
+  // Build expressions
+  auto datediff_date_expr =
+      TreeExprBuilder::MakeExpression("add_months", {field0, field1}, out_field);
+  auto datediff_timestamp_expr =
+      TreeExprBuilder::MakeExpression("add_months", {field2, field3}, out_field);
+
+  std::shared_ptr<Projector> projector;
+
+  auto status = Projector::Make(schema0, {datediff_date_expr},
+                                TestConfiguration(), &projector);
+  EXPECT_TRUE(status.ok());
+
+
+  int num_records = 4;
+
+  auto date_2021_10_15 = 1634256000000;
+  auto date_2021_09_15 = 1631664000000;
+  auto date_2021_02_23 = 1614038400000;
+  auto date_2020_05_08 = 1588896000000;
+
+  auto array0 = MakeArrowArrayInt32({10, -2, 5, 0}, {true, true, true, true});
+  auto array1 = MakeArrowArrayDate64({date_2021_10_15, date_2021_09_15, date_2021_02_23, date_2020_05_08}, {true, true, true, true});
+  auto in_batch0 = arrow::RecordBatch::Make(schema0, num_records, {array0, array1});
+
+  auto exp_date_2022_08_15 = 1660521600000;
+  auto exp_date_2021_07_15 = 1626307200000;
+  auto exp_date_2021_07_23 = 1626998400000;
+  auto exp_date_2020_05_08 = 1588896000000;
+
+  auto expec_out = MakeArrowArrayInt64({exp_date_2022_08_15, exp_date_2021_07_15, exp_date_2021_07_23, exp_date_2020_05_08}, {true, true, true, true});
+
+  arrow::ArrayVector outputs0;
+  arrow::ArrayVector outputs1;
+
+  status = projector->Evaluate(*in_batch0, pool_, &outputs0);
+  EXPECT_TRUE(status.ok());
+
+  EXPECT_ARROW_ARRAY_EQUALS(expec_out, outputs0.at(0));
+
+  // Evaluate datediff with timestamp
+  status = Projector::Make(schema1, {datediff_timestamp_expr},
+                           TestConfiguration(), &projector);
+  EXPECT_TRUE(status.ok());
+
+  auto in_batch1 = arrow::RecordBatch::Make(schema1, num_records, {array0, array1});
+  status = projector->Evaluate(*in_batch1, pool_, &outputs1);
+  EXPECT_TRUE(status.ok());
+
+  EXPECT_ARROW_ARRAY_EQUALS(expec_out, outputs1.at(0));
+}
+
 }  // namespace gandiva
