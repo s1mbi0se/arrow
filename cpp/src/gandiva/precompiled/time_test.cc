@@ -913,4 +913,31 @@ TEST(TestTime, TestCastNullableInterval) {
   context.Reset();
 }
 
+TEST(TestTime, TestDatediff) {
+  gdv_timestamp ts1 = StringToTimestamp("2019-06-30 00:00:00");
+  gdv_timestamp ts2 = StringToTimestamp("2019-05-31 00:00:00");
+  EXPECT_EQ(datediff_timestamp_timestamp(ts1, ts2), -30);
+
+  ts1 = StringToTimestamp("2019-06-30 00:00:00");
+  ts2 = StringToTimestamp("2019-06-30 00:00:00");
+  EXPECT_EQ(datediff_timestamp_timestamp(ts1, ts2), 0);
+
+  ts1 = StringToTimestamp("2019-06-30 00:00:00");
+  ts2 = StringToTimestamp("2019-07-31 00:00:00");
+  EXPECT_EQ(datediff_timestamp_timestamp(ts1, ts2), 31);
+
+  gdv_date64 date1 = StringToTimestamp("2019-06-30 00:00:00");
+  gdv_date64 date2 = StringToTimestamp("2019-05-31 00:00:00");
+  EXPECT_EQ(datediff_date64_date64(date1, date2), -30);
+
+  date1 = StringToTimestamp("2019-06-30 00:00:00");
+  date2 = StringToTimestamp("2019-06-30 00:00:00");
+  EXPECT_EQ(datediff_date64_date64(date1, date2), 0);
+
+  date1 = StringToTimestamp("2019-06-30 00:00:00");
+  date2 = StringToTimestamp("2019-07-31 00:00:00");
+  EXPECT_EQ(datediff_date64_date64(date1, date2), 31);
+
+}
+
 }  // namespace gandiva
