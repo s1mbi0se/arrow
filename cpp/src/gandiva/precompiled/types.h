@@ -78,6 +78,9 @@ gdv_int64 hash64_buf(const gdv_uint8* buf, int len, gdv_int64 seed);
 
 gdv_int32 timestampdiffMonth_timestamp_timestamp(gdv_timestamp, gdv_timestamp);
 
+gdv_int32 datediff_timestamp_timestamp(gdv_timestamp , gdv_timestamp);
+gdv_int32 datediff_date64_date64(gdv_date64 , gdv_date64);
+
 gdv_int64 timestampaddSecond_int32_timestamp(gdv_int32, gdv_timestamp);
 gdv_int64 timestampaddMinute_int32_timestamp(gdv_int32, gdv_timestamp);
 gdv_int64 timestampaddHour_int32_timestamp(gdv_int32, gdv_timestamp);

@@ -1606,44 +1606,63 @@ TEST_F(TestProjector, TestCastNullableIntYearInterval) {
   EXPECT_ARROW_ARRAY_EQUALS(out_int64, outputs.at(1));
 }
 
-TEST_F(TestProjector, TestDatediffUtf8) {
+TEST_F(TestProjector, TestDatediff) {
   // input fields
-  auto field0 = field("f0", arrow::utf8());
-  auto field1 = field("f1", arrow::utf8());
-  auto schema = arrow::schema({field0, field1});
+  auto field0 = field("f0", arrow::date64());
+  auto field1 = field("f1", arrow::date64());
+  auto schema0 = arrow::schema({field0, field1});
+  auto field2 = field("f2", timestamp(arrow::TimeUnit::MILLI));
+  auto field3 = field("f3", timestamp(arrow::TimeUnit::MILLI));
+  auto schema1 = arrow::schema({field2, field3});
 
   // output fields
-  auto out_field = field("res", arrow::int64());
+  auto out_field = field("res", arrow::int32());
 
 
-  // Build expression
-  auto datediff_expr =
+  // Build expressions
+  auto datediff_date_expr =
       TreeExprBuilder::MakeExpression("datediff", {field0, field1}, out_field);
+  auto datediff_timestamp_expr =
+      TreeExprBuilder::MakeExpression("datediff", {field2, field3}, out_field);
 
   std::shared_ptr<Projector> projector;
 
-  auto status = Projector::Make(schema, {datediff_expr},
+  auto status = Projector::Make(schema0, {datediff_date_expr},
                                 TestConfiguration(), &projector);
   EXPECT_TRUE(status.ok());
 
-  // Create a row-batch with some sample data
-  int num_records = 5;
 
-  // Last validity is false and the cast functions throw error when input is empty. Should
-  // not be evaluated due to addition of NativeFunction::kCanReturnErrors
-  auto array0 = MakeArrowArrayUtf8({"2021-10-15", "2021-09-15 09:45:30", "", "2021-10-15", ""}, {true, true, true, true, false});
-  auto array1 = MakeArrowArrayUtf8({"2021-09-15", "2021-10-15 09:45:30", "2021-10-15", "", ""}, {true, true, true, true, true});
-  auto in_batch = arrow::RecordBatch::Make(schema, num_records, {array0, array1});
+  int num_records = 4;
 
-  auto expec_out = MakeArrowArrayInt64({1, -1, 0, 0, 0}, {true, true, true, true, false});
+  auto date_2021_10_15 = 1634256000000;
+  auto date_2021_09_15 = 1631664000000;
+  auto date_2021_10_15_09_45_30 = 1634291130000;
+  auto date_2021_09_15_09_45_30 = 1631699130000;
 
-  arrow::ArrayVector outputs;
+  auto array0 = MakeArrowArrayDate64({date_2021_10_15, date_2021_09_15_09_45_30, date_2021_10_15, date_2021_10_15}, {true, true, true, true});
+  auto array1 = MakeArrowArrayDate64({date_2021_09_15, date_2021_10_15_09_45_30, date_2021_10_15, 0}, {true, true, true, true});
+  auto in_batch0 = arrow::RecordBatch::Make(schema0, num_records, {array0, array1});
 
-  // Evaluate expression
-  status = projector->Evaluate(*in_batch, pool_, &outputs);
+  auto expec_out = MakeArrowArrayInt32({-30, 30, 0, -18915}, {true, true, true, true});
+
+  arrow::ArrayVector outputs0;
+  arrow::ArrayVector outputs1;
+
+  status = projector->Evaluate(*in_batch0, pool_, &outputs0);
   EXPECT_TRUE(status.ok());
 
-  EXPECT_ARROW_ARRAY_EQUALS(expec_out, outputs.at(0));
+  EXPECT_ARROW_ARRAY_EQUALS(expec_out, outputs0.at(0));
+
+  // Evaluate datediff with timestamp
+  status = Projector::Make(schema1, {datediff_timestamp_expr},
+                                TestConfiguration(), &projector);
+  EXPECT_TRUE(status.ok());
+
+  auto in_batch1 = arrow::RecordBatch::Make(schema1, num_records, {array0, array1});
+  status = projector->Evaluate(*in_batch1, pool_, &outputs1);
+  EXPECT_TRUE(status.ok());
+
+  EXPECT_ARROW_ARRAY_EQUALS(expec_out, outputs1.at(0));
 }
 
 }  // namespace gandiva

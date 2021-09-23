@@ -127,6 +127,12 @@ extern "C" {
 
 TIMESTAMP_DIFF(timestamp)
 
+#define DATEDIFF(TYPE)                                                  \
+  TIMESTAMP_DIFF_FIXED_UNITS(TYPE, datediff, MILLIS_TO_DAY)             \
+
+DATEDIFF(timestamp)
+DATEDIFF(date64)
+
 #define ADD_INT32_TO_TIMESTAMP_FIXED_UNITS(TYPE, NAME, TO_MILLIS)      \
   FORCE_INLINE                                                         \
   gdv_##TYPE NAME##_int32_##TYPE(gdv_int32 count, gdv_##TYPE millis) { \
