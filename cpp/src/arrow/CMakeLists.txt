@@ -451,6 +451,12 @@ if(ARROW_FILESYSTEM)
        filesystem/path_util.cc
        filesystem/util_internal.cc)
 
+  if(ARROW_GCS)
+    list(APPEND ARROW_SRCS filesystem/gcsfs.cc filesystem/gcsfs_internal.cc)
+    set_source_files_properties(filesystem/gcsfs.cc filesystem/gcsfs_internal.cc
+                                PROPERTIES SKIP_PRECOMPILE_HEADERS ON
+                                           SKIP_UNITY_BUILD_INCLUSION ON)
+  endif()
   if(ARROW_HDFS)
     list(APPEND ARROW_SRCS filesystem/hdfs.cc)
   endif()
