@@ -598,11 +598,15 @@ namespace parquet {
                 num_rows_processed += table->num_rows();
                 auto columns_names = table->ColumnNames();
                 num_rows_processed *= static_cast<int64_t>(columns_names.size());
+                ::arrow::TableBatchReader tableBatchReader(*table);
 
-                for (const auto &name: columns_names) {
-                    const std::shared_ptr<::arrow::ChunkedArray> &columns_arrays = table->GetColumnByName(name);
-                }
+                std::shared_ptr<::arrow::RecordBatch> recordBatch;
+                ::arrow::Status status;
+                do{
+                    status = tableBatchReader.ReadNext(&recordBatch);
+                }while(status.ok());
             }
+
             state.SetItemsProcessed(num_rows_processed);
         }
 
