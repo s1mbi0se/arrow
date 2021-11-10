@@ -556,8 +556,11 @@ namespace parquet {
 
         static void BM_Case1_1_ReadOneColumnPerTime(::benchmark::State &state) {
             ::arrow::MemoryPool *pool = ::arrow::default_memory_pool();
+
+            // Open the parquet file
             std::shared_ptr<::arrow::io::RandomAccessFile> input;
             PARQUET_ASSIGN_OR_THROW(input, ::arrow::io::ReadableFile::Open("case_1_1.parquet"));
+            
             // Open Parquet file reader
             std::unique_ptr<parquet::arrow::FileReader> arrow_reader;
             EXIT_NOT_OK(parquet::arrow::OpenFile(input, pool, &arrow_reader));
@@ -566,16 +569,22 @@ namespace parquet {
             while (state.KeepRunning()) {
 
                 std::shared_ptr<::arrow::Table> table;
-                // Read only the first rowgroup
+                // Read only the first rowgroup inside a Table data
                 EXIT_NOT_OK(arrow_reader->RowGroup(0)->ReadTable(&table));
                 num_rows_processed += table->num_rows();
+
+                // Read just the first 40000 rows inside the table
+                const std::shared_ptr<::arrow::Table> &table_slice = table->Slice(0, 40000);
+
                 auto columns_names = table->ColumnNames();
                 num_rows_processed *= static_cast<int64_t>(columns_names.size());
 
+                // Read all data for a single column at time
                 for (const auto &name: columns_names) {
                     const std::shared_ptr<::arrow::ChunkedArray> &columns_arrays = table->GetColumnByName(name);
                 }
             }
+            
             state.SetItemsProcessed(num_rows_processed);
         }
 
