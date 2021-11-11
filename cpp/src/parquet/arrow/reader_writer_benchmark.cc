@@ -560,32 +560,35 @@ namespace parquet {
             // Open the parquet file
             std::shared_ptr<::arrow::io::RandomAccessFile> input;
             PARQUET_ASSIGN_OR_THROW(input, ::arrow::io::ReadableFile::Open("case_1_1.parquet"));
-            
+
             // Open Parquet file reader
             std::unique_ptr<parquet::arrow::FileReader> arrow_reader;
             EXIT_NOT_OK(parquet::arrow::OpenFile(input, pool, &arrow_reader));
 
-            int64_t num_rows_processed = 0;
+            int32_t num_columns = 100;
+            int32_t column_index = 0;
             while (state.KeepRunning()) {
 
-                std::shared_ptr<::arrow::Table> table;
-                // Read only the first rowgroup inside a Table data
-                EXIT_NOT_OK(arrow_reader->RowGroup(0)->ReadTable(&table));
-                num_rows_processed += table->num_rows();
+                std::shared_ptr<::arrow::RecordBatchReader> recordBatchReader;
 
-                // Read just the first 40000 rows inside the table
-                const std::shared_ptr<::arrow::Table> &table_slice = table->Slice(0, 40000);
+                // Read just the first row group inside the table
+                std::vector<int32_t> row_group_index;
+                row_group_index.push_back(0);
 
-                auto columns_names = table->ColumnNames();
-                num_rows_processed *= static_cast<int64_t>(columns_names.size());
+                // Read just one column per time
+                std::vector<int32_t> columns_to_read;
+                columns_to_read.push_back(column_index);
 
-                // Read all data for a single column at time
-                for (const auto &name: columns_names) {
-                    const std::shared_ptr<::arrow::ChunkedArray> &columns_arrays = table->GetColumnByName(name);
-                }
+                // Update the column index
+                column_index = (column_index + 1) % num_columns;
+
+                EXIT_NOT_OK(arrow_reader->GetRecordBatchReader(row_group_index, columns_to_read, &recordBatchReader));
+
+                ::arrow::Result<std::shared_ptr<::arrow::RecordBatch>> result;
+                do{
+                    result = recordBatchReader->Next();
+                }while(result.ok());
             }
-            
-            state.SetItemsProcessed(num_rows_processed);
         }
 
         BENCHMARK(BM_Case1_1_ReadOneColumnPerTime);
@@ -598,25 +601,27 @@ namespace parquet {
             std::unique_ptr<parquet::arrow::FileReader> arrow_reader;
             EXIT_NOT_OK(parquet::arrow::OpenFile(input, pool, &arrow_reader));
 
-            int64_t num_rows_processed = 0;
             while (state.KeepRunning()) {
+                std::shared_ptr<::arrow::RecordBatchReader> recordBatchReader;
 
-                std::shared_ptr<::arrow::Table> table;
-                // Read only the first rowgroup
-                EXIT_NOT_OK(arrow_reader->RowGroup(0)->ReadTable(&table));
-                num_rows_processed += table->num_rows();
-                auto columns_names = table->ColumnNames();
-                num_rows_processed *= static_cast<int64_t>(columns_names.size());
-                ::arrow::TableBatchReader tableBatchReader(*table);
+                // Read just the first row group inside the table
+                std::vector<int32_t> row_group_index;
+                row_group_index.push_back(0);
 
-                std::shared_ptr<::arrow::RecordBatch> recordBatch;
-                ::arrow::Status status;
+                // Read all columns at once
+                int32_t num_columns = 100;
+                std::vector<int32_t> columns_to_read;
+                for(int32_t i=0; i < num_columns; i++){
+                    columns_to_read.push_back(i);
+                }
+
+                EXIT_NOT_OK(arrow_reader->GetRecordBatchReader(row_group_index, columns_to_read, &recordBatchReader));
+
+                ::arrow::Result<std::shared_ptr<::arrow::RecordBatch>> result;
                 do{
-                    status = tableBatchReader.ReadNext(&recordBatch);
-                }while(status.ok());
+                    result = recordBatchReader->Next();
+                }while(result.ok());
             }
-
-            state.SetItemsProcessed(num_rows_processed);
         }
 
         BENCHMARK(BM_Case1_1_ReadAllColumnsAtOnce);
