@@ -278,7 +278,7 @@ namespace parquet {
 
             const char* file_path = std::getenv("ARROW_PARQUET_BENCHMARK_UNCOMPRESSED_FILE");
             std::string path_as_str(file_path);
-            
+
             // Open the parquet file
             std::shared_ptr<::arrow::io::RandomAccessFile> input;
             PARQUET_ASSIGN_OR_THROW(input, ::arrow::io::ReadableFile::Open(path_as_str));
