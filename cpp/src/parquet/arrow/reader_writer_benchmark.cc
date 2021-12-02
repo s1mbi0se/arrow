@@ -200,9 +200,12 @@ namespace parquet {
         static void BM_Uncompressed_ReadOneColumnPerTimeInt(::benchmark::State &state) {
             ::arrow::MemoryPool *pool = ::arrow::default_memory_pool();
 
+            const char* file_path = std::getenv("ARROW_PARQUET_BENCHMARK_UNCOMPRESSED_FILE");
+            std::string path_as_str(file_path);
+            
             // Open the parquet file
             std::shared_ptr<::arrow::io::RandomAccessFile> input;
-            PARQUET_ASSIGN_OR_THROW(input, ::arrow::io::ReadableFile::Open("/home/anthonydremio/dremio_codes/multirowgroupparquetgenerator/uncompressed.parquet"));
+            PARQUET_ASSIGN_OR_THROW(input, ::arrow::io::ReadableFile::Open(path_as_str));
 
             // Open Parquet file reader
             std::unique_ptr<parquet::arrow::FileReader> arrow_reader;
@@ -235,9 +238,12 @@ namespace parquet {
         static void BM_Uncompressed_ReadOneColumnPerTimeBigint(::benchmark::State &state) {
             ::arrow::MemoryPool *pool = ::arrow::default_memory_pool();
 
+            const char* file_path = std::getenv("ARROW_PARQUET_BENCHMARK_UNCOMPRESSED_FILE");
+            std::string path_as_str(file_path);
+            
             // Open the parquet file
             std::shared_ptr<::arrow::io::RandomAccessFile> input;
-            PARQUET_ASSIGN_OR_THROW(input, ::arrow::io::ReadableFile::Open("/home/anthonydremio/dremio_codes/multirowgroupparquetgenerator/uncompressed.parquet"));
+            PARQUET_ASSIGN_OR_THROW(input, ::arrow::io::ReadableFile::Open(path_as_str));
 
             // Open Parquet file reader
             std::unique_ptr<parquet::arrow::FileReader> arrow_reader;
@@ -270,9 +276,12 @@ namespace parquet {
         static void BM_Uncompressed_ReadOneColumnPerTimeVarchar(::benchmark::State &state) {
             ::arrow::MemoryPool *pool = ::arrow::default_memory_pool();
 
+            const char* file_path = std::getenv("ARROW_PARQUET_BENCHMARK_UNCOMPRESSED_FILE");
+            std::string path_as_str(file_path);
+            
             // Open the parquet file
             std::shared_ptr<::arrow::io::RandomAccessFile> input;
-            PARQUET_ASSIGN_OR_THROW(input, ::arrow::io::ReadableFile::Open("/home/anthonydremio/dremio_codes/multirowgroupparquetgenerator/uncompressed.parquet"));
+            PARQUET_ASSIGN_OR_THROW(input, ::arrow::io::ReadableFile::Open(path_as_str));
 
             // Open Parquet file reader
             std::unique_ptr<parquet::arrow::FileReader> arrow_reader;
@@ -305,9 +314,12 @@ namespace parquet {
         static void BM_Uncompressed_ReadOneColumnPerTimeDecimal(::benchmark::State &state) {
             ::arrow::MemoryPool *pool = ::arrow::default_memory_pool();
 
+            const char* file_path = std::getenv("ARROW_PARQUET_BENCHMARK_UNCOMPRESSED_FILE");
+            std::string path_as_str(file_path);
+            
             // Open the parquet file
             std::shared_ptr<::arrow::io::RandomAccessFile> input;
-            PARQUET_ASSIGN_OR_THROW(input, ::arrow::io::ReadableFile::Open("/home/anthonydremio/dremio_codes/multirowgroupparquetgenerator/uncompressed.parquet"));
+            PARQUET_ASSIGN_OR_THROW(input, ::arrow::io::ReadableFile::Open(path_as_str));
 
             // Open Parquet file reader
             std::unique_ptr<parquet::arrow::FileReader> arrow_reader;
@@ -340,9 +352,12 @@ namespace parquet {
         static void BM_Uncompressed_ReadOneColumnPerTimeStruct(::benchmark::State &state) {
             ::arrow::MemoryPool *pool = ::arrow::default_memory_pool();
 
+            const char* file_path = std::getenv("ARROW_PARQUET_BENCHMARK_UNCOMPRESSED_FILE");
+            std::string path_as_str(file_path);
+            
             // Open the parquet file
             std::shared_ptr<::arrow::io::RandomAccessFile> input;
-            PARQUET_ASSIGN_OR_THROW(input, ::arrow::io::ReadableFile::Open("/home/anthonydremio/dremio_codes/multirowgroupparquetgenerator/uncompressed.parquet"));
+            PARQUET_ASSIGN_OR_THROW(input, ::arrow::io::ReadableFile::Open(path_as_str));
 
             // Open Parquet file reader
             std::unique_ptr<parquet::arrow::FileReader> arrow_reader;
@@ -376,9 +391,12 @@ namespace parquet {
         static void BM_Uncompressed_ReadOneColumnPerTimeArrayStruct(::benchmark::State &state) {
             ::arrow::MemoryPool *pool = ::arrow::default_memory_pool();
 
+            const char* file_path = std::getenv("ARROW_PARQUET_BENCHMARK_UNCOMPRESSED_FILE");
+            std::string path_as_str(file_path);
+            
             // Open the parquet file
             std::shared_ptr<::arrow::io::RandomAccessFile> input;
-            PARQUET_ASSIGN_OR_THROW(input, ::arrow::io::ReadableFile::Open("/home/anthonydremio/dremio_codes/multirowgroupparquetgenerator/uncompressed.parquet"));
+            PARQUET_ASSIGN_OR_THROW(input, ::arrow::io::ReadableFile::Open(path_as_str));
 
             // Open Parquet file reader
             std::unique_ptr<parquet::arrow::FileReader> arrow_reader;
@@ -411,10 +429,13 @@ namespace parquet {
         static void BM_Compressed_ReadOneColumnPerTimeInt(::benchmark::State &state) {
             ::arrow::MemoryPool *pool = ::arrow::default_memory_pool();
 
+            const char* file_path = std::getenv("ARROW_PARQUET_BENCHMARK_COMPRESSED_FILE");
+            std::string path_as_str(file_path);
+            
             // Open the parquet file
             std::shared_ptr<::arrow::io::RandomAccessFile> input;
-            PARQUET_ASSIGN_OR_THROW(input, ::arrow::io::ReadableFile::Open("/home/anthonydremio/dremio_codes/multirowgroupparquetgenerator/compressed.parquet"));
-
+            PARQUET_ASSIGN_OR_THROW(input, ::arrow::io::ReadableFile::Open(path_as_str));
+            
             // Open Parquet file reader
             std::unique_ptr<parquet::arrow::FileReader> arrow_reader;
             EXIT_NOT_OK(parquet::arrow::OpenFile(input, pool, &arrow_reader));
@@ -446,9 +467,12 @@ namespace parquet {
         static void BM_Compressed_ReadOneColumnPerTimeBigint(::benchmark::State &state) {
             ::arrow::MemoryPool *pool = ::arrow::default_memory_pool();
 
+            const char* file_path = std::getenv("ARROW_PARQUET_BENCHMARK_COMPRESSED_FILE");
+            std::string path_as_str(file_path);
+            
             // Open the parquet file
             std::shared_ptr<::arrow::io::RandomAccessFile> input;
-            PARQUET_ASSIGN_OR_THROW(input, ::arrow::io::ReadableFile::Open("/home/anthonydremio/dremio_codes/multirowgroupparquetgenerator/compressed.parquet"));
+            PARQUET_ASSIGN_OR_THROW(input, ::arrow::io::ReadableFile::Open(path_as_str));
 
             // Open Parquet file reader
             std::unique_ptr<parquet::arrow::FileReader> arrow_reader;
@@ -481,9 +505,12 @@ namespace parquet {
         static void BM_Compressed_ReadOneColumnPerTimeVarchar(::benchmark::State &state) {
             ::arrow::MemoryPool *pool = ::arrow::default_memory_pool();
 
+            const char* file_path = std::getenv("ARROW_PARQUET_BENCHMARK_COMPRESSED_FILE");
+            std::string path_as_str(file_path);
+            
             // Open the parquet file
             std::shared_ptr<::arrow::io::RandomAccessFile> input;
-            PARQUET_ASSIGN_OR_THROW(input, ::arrow::io::ReadableFile::Open("/home/anthonydremio/dremio_codes/multirowgroupparquetgenerator/compressed.parquet"));
+            PARQUET_ASSIGN_OR_THROW(input, ::arrow::io::ReadableFile::Open(path_as_str));
 
             // Open Parquet file reader
             std::unique_ptr<parquet::arrow::FileReader> arrow_reader;
@@ -516,9 +543,12 @@ namespace parquet {
         static void BM_Compressed_ReadOneColumnPerTimeDecimal(::benchmark::State &state) {
             ::arrow::MemoryPool *pool = ::arrow::default_memory_pool();
 
+            const char* file_path = std::getenv("ARROW_PARQUET_BENCHMARK_COMPRESSED_FILE");
+            std::string path_as_str(file_path);
+            
             // Open the parquet file
             std::shared_ptr<::arrow::io::RandomAccessFile> input;
-            PARQUET_ASSIGN_OR_THROW(input, ::arrow::io::ReadableFile::Open("/home/anthonydremio/dremio_codes/multirowgroupparquetgenerator/compressed.parquet"));
+            PARQUET_ASSIGN_OR_THROW(input, ::arrow::io::ReadableFile::Open(path_as_str));
 
             // Open Parquet file reader
             std::unique_ptr<parquet::arrow::FileReader> arrow_reader;
@@ -551,9 +581,12 @@ namespace parquet {
         static void BM_Compressed_ReadOneColumnPerTimeStruct(::benchmark::State &state) {
             ::arrow::MemoryPool *pool = ::arrow::default_memory_pool();
 
+            const char* file_path = std::getenv("ARROW_PARQUET_BENCHMARK_COMPRESSED_FILE");
+            std::string path_as_str(file_path);
+            
             // Open the parquet file
             std::shared_ptr<::arrow::io::RandomAccessFile> input;
-            PARQUET_ASSIGN_OR_THROW(input, ::arrow::io::ReadableFile::Open("/home/anthonydremio/dremio_codes/multirowgroupparquetgenerator/compressed.parquet"));
+            PARQUET_ASSIGN_OR_THROW(input, ::arrow::io::ReadableFile::Open(path_as_str));
 
             // Open Parquet file reader
             std::unique_ptr<parquet::arrow::FileReader> arrow_reader;
@@ -586,9 +619,12 @@ namespace parquet {
         static void BM_Compressed_ReadOneColumnPerTimeArrayStruct(::benchmark::State &state) {
             ::arrow::MemoryPool *pool = ::arrow::default_memory_pool();
 
+            const char* file_path = std::getenv("ARROW_PARQUET_BENCHMARK_COMPRESSED_FILE");
+            std::string path_as_str(file_path);
+            
             // Open the parquet file
             std::shared_ptr<::arrow::io::RandomAccessFile> input;
-            PARQUET_ASSIGN_OR_THROW(input, ::arrow::io::ReadableFile::Open("/home/anthonydremio/dremio_codes/multirowgroupparquetgenerator/compressed.parquet"));
+            PARQUET_ASSIGN_OR_THROW(input, ::arrow::io::ReadableFile::Open(path_as_str));
 
             // Open Parquet file reader
             std::unique_ptr<parquet::arrow::FileReader> arrow_reader;
