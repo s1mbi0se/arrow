@@ -197,86 +197,10 @@ namespace parquet {
             static constexpr std::array<bool, 2> values() { return {false, true}; }
         };
 
-        static void BM_Uncompressed_ReadOneColumnPerTimeInt(::benchmark::State &state) {
+        static void BM_Uncompressed_ReadOneColumnAtATime(::benchmark::State &state) {
             ::arrow::MemoryPool *pool = ::arrow::default_memory_pool();
 
-            const char* file_path = std::getenv("ARROW_PARQUET_BENCHMARK_UNCOMPRESSED_FILE");
-            std::string path_as_str(file_path);
-            
-            // Open the parquet file
-            std::shared_ptr<::arrow::io::RandomAccessFile> input;
-            PARQUET_ASSIGN_OR_THROW(input, ::arrow::io::ReadableFile::Open(path_as_str));
-
-            // Open Parquet file reader
-            std::unique_ptr<parquet::arrow::FileReader> arrow_reader;
-            EXIT_NOT_OK(parquet::arrow::OpenFile(input, pool, &arrow_reader));
-
-            while (state.KeepRunning()) {
-
-                std::shared_ptr<::arrow::RecordBatchReader> recordBatchReader;
-
-                // Read just the first row group inside the table
-                std::vector<int32_t> row_group_index;
-                row_group_index.push_back(0);
-
-                // Read just one column per time
-                std::vector<int32_t> columns_to_read;
-                columns_to_read.push_back(0);
-
-                EXIT_NOT_OK(arrow_reader->GetRecordBatchReader(row_group_index, columns_to_read, &recordBatchReader));
-
-                ::arrow::Result<std::shared_ptr<::arrow::RecordBatch>> result;
-                do{
-                    result = recordBatchReader->Next();
-                }while(result.ValueOrDie());
-            }
-        }
-
-        BENCHMARK(BM_Uncompressed_ReadOneColumnPerTimeInt)
-            ->Unit(::benchmark::kMillisecond);
-
-        static void BM_Uncompressed_ReadOneColumnPerTimeBigint(::benchmark::State &state) {
-            ::arrow::MemoryPool *pool = ::arrow::default_memory_pool();
-
-            const char* file_path = std::getenv("ARROW_PARQUET_BENCHMARK_UNCOMPRESSED_FILE");
-            std::string path_as_str(file_path);
-            
-            // Open the parquet file
-            std::shared_ptr<::arrow::io::RandomAccessFile> input;
-            PARQUET_ASSIGN_OR_THROW(input, ::arrow::io::ReadableFile::Open(path_as_str));
-
-            // Open Parquet file reader
-            std::unique_ptr<parquet::arrow::FileReader> arrow_reader;
-            EXIT_NOT_OK(parquet::arrow::OpenFile(input, pool, &arrow_reader));
-
-            while (state.KeepRunning()) {
-
-                std::shared_ptr<::arrow::RecordBatchReader> recordBatchReader;
-
-                // Read just the first row group inside the table
-                std::vector<int32_t> row_group_index;
-                row_group_index.push_back(0);
-
-                // Read just one column per time
-                std::vector<int32_t> columns_to_read;
-                columns_to_read.push_back(1);
-
-                EXIT_NOT_OK(arrow_reader->GetRecordBatchReader(row_group_index, columns_to_read, &recordBatchReader));
-
-                ::arrow::Result<std::shared_ptr<::arrow::RecordBatch>> result;
-                do{
-                    result = recordBatchReader->Next();
-                }while(result.ValueOrDie());
-            }
-        }
-
-        BENCHMARK(BM_Uncompressed_ReadOneColumnPerTimeBigint)
-            ->Unit(::benchmark::kMillisecond);
-
-        static void BM_Uncompressed_ReadOneColumnPerTimeVarchar(::benchmark::State &state) {
-            ::arrow::MemoryPool *pool = ::arrow::default_memory_pool();
-
-            const char* file_path = std::getenv("ARROW_PARQUET_BENCHMARK_UNCOMPRESSED_FILE");
+            const char *file_path = std::getenv("ARROW_PARQUET_BENCHMARK_UNCOMPRESSED_FILE");
             std::string path_as_str(file_path);
 
             // Open the parquet file
@@ -288,35 +212,40 @@ namespace parquet {
             EXIT_NOT_OK(parquet::arrow::OpenFile(input, pool, &arrow_reader));
 
             while (state.KeepRunning()) {
-
                 std::shared_ptr<::arrow::RecordBatchReader> recordBatchReader;
 
-                // Read just the first row group inside the table
+                // Read all row groups
                 std::vector<int32_t> row_group_index;
-                row_group_index.push_back(0);
+                for(int i = 0; i < arrow_reader.get()->num_row_groups(); i++) {
+                    row_group_index.push_back(i);
+                }
 
                 // Read just one column per time
                 std::vector<int32_t> columns_to_read;
-                columns_to_read.push_back(2);
+                columns_to_read.push_back(state.range(0));
+                arrow_reader->set_batch_size(4096);
 
-                EXIT_NOT_OK(arrow_reader->GetRecordBatchReader(row_group_index, columns_to_read, &recordBatchReader));
+                EXIT_NOT_OK(
+                        arrow_reader->GetRecordBatchReader(row_group_index, columns_to_read, &recordBatchReader));
 
                 ::arrow::Result<std::shared_ptr<::arrow::RecordBatch>> result;
-                do{
+                do {
                     result = recordBatchReader->Next();
-                }while(result.ValueOrDie());
+                } while (result.ValueOrDie());
             }
         }
 
-        BENCHMARK(BM_Uncompressed_ReadOneColumnPerTimeVarchar)
-            ->Unit(::benchmark::kMillisecond);
+        BENCHMARK(BM_Uncompressed_ReadOneColumnAtATime)
+            ->Arg(0)->Arg(1)->Arg(2)->Arg(3)->Arg(4)->Arg(5)->Arg(6)->Arg(7)
+            ->Unit(::benchmark::kMillisecond)
+            ->MinTime(5);
 
-        static void BM_Uncompressed_ReadOneColumnPerTimeDecimal(::benchmark::State &state) {
+        static void BM_Uncompressed_ReadAllColumns(::benchmark::State &state) {
             ::arrow::MemoryPool *pool = ::arrow::default_memory_pool();
 
-            const char* file_path = std::getenv("ARROW_PARQUET_BENCHMARK_UNCOMPRESSED_FILE");
+            const char *file_path = std::getenv("ARROW_PARQUET_BENCHMARK_UNCOMPRESSED_FILE");
             std::string path_as_str(file_path);
-            
+
             // Open the parquet file
             std::shared_ptr<::arrow::io::RandomAccessFile> input;
             PARQUET_ASSIGN_OR_THROW(input, ::arrow::io::ReadableFile::Open(path_as_str));
@@ -325,335 +254,37 @@ namespace parquet {
             std::unique_ptr<parquet::arrow::FileReader> arrow_reader;
             EXIT_NOT_OK(parquet::arrow::OpenFile(input, pool, &arrow_reader));
 
-            while (state.KeepRunning()) {
-
                 std::shared_ptr<::arrow::RecordBatchReader> recordBatchReader;
 
-                // Read just the first row group inside the table
+                // Read all row groups
                 std::vector<int32_t> row_group_index;
-                row_group_index.push_back(0);
+                for(int i = 0; i < arrow_reader.get()->num_row_groups(); i++) {
+                    row_group_index.push_back(i);
+                }
 
                 // Read just one column per time
                 std::vector<int32_t> columns_to_read;
-                columns_to_read.push_back(3);
-
-                EXIT_NOT_OK(arrow_reader->GetRecordBatchReader(row_group_index, columns_to_read, &recordBatchReader));
-
-                ::arrow::Result<std::shared_ptr<::arrow::RecordBatch>> result;
-                do{
-                    result = recordBatchReader->Next();
-                }while(result.ValueOrDie());
-            }
-        }
-
-        BENCHMARK(BM_Uncompressed_ReadOneColumnPerTimeDecimal)
-            ->Unit(::benchmark::kMillisecond);
-
-        static void BM_Uncompressed_ReadOneColumnPerTimeStruct(::benchmark::State &state) {
-            ::arrow::MemoryPool *pool = ::arrow::default_memory_pool();
-
-            const char* file_path = std::getenv("ARROW_PARQUET_BENCHMARK_UNCOMPRESSED_FILE");
-            std::string path_as_str(file_path);
-            
-            // Open the parquet file
-            std::shared_ptr<::arrow::io::RandomAccessFile> input;
-            PARQUET_ASSIGN_OR_THROW(input, ::arrow::io::ReadableFile::Open(path_as_str));
-
-            // Open Parquet file reader
-            std::unique_ptr<parquet::arrow::FileReader> arrow_reader;
-            EXIT_NOT_OK(parquet::arrow::OpenFile(input, pool, &arrow_reader));
+                std::shared_ptr<::arrow::Schema> schema;
+                EXIT_NOT_OK(arrow_reader.get()->GetSchema(&schema));
+                for(int i = 0; i < schema.get()->num_fields(); i++) {
+                    columns_to_read.push_back(i);
+                }
+                arrow_reader->set_batch_size(4096);
 
             while (state.KeepRunning()) {
-
-                std::shared_ptr<::arrow::RecordBatchReader> recordBatchReader;
-
-                // Read just the first row group inside the table
-                std::vector<int32_t> row_group_index;
-                row_group_index.push_back(0);
-
-                // Read just one column per time
-                std::vector<int32_t> columns_to_read;
-                columns_to_read.push_back(4);
-
-                EXIT_NOT_OK(arrow_reader->GetRecordBatchReader(row_group_index, columns_to_read, &recordBatchReader));
+                EXIT_NOT_OK(
+                        arrow_reader->GetRecordBatchReader(row_group_index, columns_to_read, &recordBatchReader));
 
                 ::arrow::Result<std::shared_ptr<::arrow::RecordBatch>> result;
-                do{
+                do {
                     result = recordBatchReader->Next();
-                }while(result.ValueOrDie());
+                } while (result.ValueOrDie());
             }
         }
 
-        BENCHMARK(BM_Uncompressed_ReadOneColumnPerTimeStruct)
-            ->Unit(::benchmark::kMillisecond);
-
-
-        static void BM_Uncompressed_ReadOneColumnPerTimeArrayStruct(::benchmark::State &state) {
-            ::arrow::MemoryPool *pool = ::arrow::default_memory_pool();
-
-            const char* file_path = std::getenv("ARROW_PARQUET_BENCHMARK_UNCOMPRESSED_FILE");
-            std::string path_as_str(file_path);
-            
-            // Open the parquet file
-            std::shared_ptr<::arrow::io::RandomAccessFile> input;
-            PARQUET_ASSIGN_OR_THROW(input, ::arrow::io::ReadableFile::Open(path_as_str));
-
-            // Open Parquet file reader
-            std::unique_ptr<parquet::arrow::FileReader> arrow_reader;
-            EXIT_NOT_OK(parquet::arrow::OpenFile(input, pool, &arrow_reader));
-
-            while (state.KeepRunning()) {
-
-                std::shared_ptr<::arrow::RecordBatchReader> recordBatchReader;
-
-                // Read just the first row group inside the table
-                std::vector<int32_t> row_group_index;
-                row_group_index.push_back(0);
-
-                // Read just one column per time
-                std::vector<int32_t> columns_to_read;
-                columns_to_read.push_back(5);
-
-                EXIT_NOT_OK(arrow_reader->GetRecordBatchReader(row_group_index, columns_to_read, &recordBatchReader));
-
-                ::arrow::Result<std::shared_ptr<::arrow::RecordBatch>> result;
-                do{
-                    result = recordBatchReader->Next();
-                }while(result.ValueOrDie());
-            }
-        }
-
-        BENCHMARK(BM_Uncompressed_ReadOneColumnPerTimeArrayStruct)
-            ->Unit(::benchmark::kMillisecond);
-
-        static void BM_Compressed_ReadOneColumnPerTimeInt(::benchmark::State &state) {
-            ::arrow::MemoryPool *pool = ::arrow::default_memory_pool();
-
-            const char* file_path = std::getenv("ARROW_PARQUET_BENCHMARK_COMPRESSED_FILE");
-            std::string path_as_str(file_path);
-            
-            // Open the parquet file
-            std::shared_ptr<::arrow::io::RandomAccessFile> input;
-            PARQUET_ASSIGN_OR_THROW(input, ::arrow::io::ReadableFile::Open(path_as_str));
-            
-            // Open Parquet file reader
-            std::unique_ptr<parquet::arrow::FileReader> arrow_reader;
-            EXIT_NOT_OK(parquet::arrow::OpenFile(input, pool, &arrow_reader));
-
-            while (state.KeepRunning()) {
-
-                std::shared_ptr<::arrow::RecordBatchReader> recordBatchReader;
-
-                // Read just the first row group inside the table
-                std::vector<int32_t> row_group_index;
-                row_group_index.push_back(0);
-
-                // Read just one column per time
-                std::vector<int32_t> columns_to_read;
-                columns_to_read.push_back(0);
-
-                EXIT_NOT_OK(arrow_reader->GetRecordBatchReader(row_group_index, columns_to_read, &recordBatchReader));
-
-                ::arrow::Result<std::shared_ptr<::arrow::RecordBatch>> result;
-                do{
-                    result = recordBatchReader->Next();
-                }while(result.ValueOrDie());
-            }
-        }
-
-        BENCHMARK(BM_Compressed_ReadOneColumnPerTimeInt)
-            ->Unit(::benchmark::kMillisecond);
-
-        static void BM_Compressed_ReadOneColumnPerTimeBigint(::benchmark::State &state) {
-            ::arrow::MemoryPool *pool = ::arrow::default_memory_pool();
-
-            const char* file_path = std::getenv("ARROW_PARQUET_BENCHMARK_COMPRESSED_FILE");
-            std::string path_as_str(file_path);
-            
-            // Open the parquet file
-            std::shared_ptr<::arrow::io::RandomAccessFile> input;
-            PARQUET_ASSIGN_OR_THROW(input, ::arrow::io::ReadableFile::Open(path_as_str));
-
-            // Open Parquet file reader
-            std::unique_ptr<parquet::arrow::FileReader> arrow_reader;
-            EXIT_NOT_OK(parquet::arrow::OpenFile(input, pool, &arrow_reader));
-
-            while (state.KeepRunning()) {
-
-                std::shared_ptr<::arrow::RecordBatchReader> recordBatchReader;
-
-                // Read just the first row group inside the table
-                std::vector<int32_t> row_group_index;
-                row_group_index.push_back(0);
-
-                // Read just one column per time
-                std::vector<int32_t> columns_to_read;
-                columns_to_read.push_back(1);
-
-                EXIT_NOT_OK(arrow_reader->GetRecordBatchReader(row_group_index, columns_to_read, &recordBatchReader));
-
-                ::arrow::Result<std::shared_ptr<::arrow::RecordBatch>> result;
-                do{
-                    result = recordBatchReader->Next();
-                }while(result.ValueOrDie());
-            }
-        }
-
-        BENCHMARK(BM_Compressed_ReadOneColumnPerTimeBigint)
-            ->Unit(::benchmark::kMillisecond);
-
-        static void BM_Compressed_ReadOneColumnPerTimeVarchar(::benchmark::State &state) {
-            ::arrow::MemoryPool *pool = ::arrow::default_memory_pool();
-
-            const char* file_path = std::getenv("ARROW_PARQUET_BENCHMARK_COMPRESSED_FILE");
-            std::string path_as_str(file_path);
-            
-            // Open the parquet file
-            std::shared_ptr<::arrow::io::RandomAccessFile> input;
-            PARQUET_ASSIGN_OR_THROW(input, ::arrow::io::ReadableFile::Open(path_as_str));
-
-            // Open Parquet file reader
-            std::unique_ptr<parquet::arrow::FileReader> arrow_reader;
-            EXIT_NOT_OK(parquet::arrow::OpenFile(input, pool, &arrow_reader));
-
-            while (state.KeepRunning()) {
-
-                std::shared_ptr<::arrow::RecordBatchReader> recordBatchReader;
-
-                // Read just the first row group inside the table
-                std::vector<int32_t> row_group_index;
-                row_group_index.push_back(0);
-
-                // Read just one column per time
-                std::vector<int32_t> columns_to_read;
-                columns_to_read.push_back(2);
-
-                EXIT_NOT_OK(arrow_reader->GetRecordBatchReader(row_group_index, columns_to_read, &recordBatchReader));
-
-                ::arrow::Result<std::shared_ptr<::arrow::RecordBatch>> result;
-                do{
-                    result = recordBatchReader->Next();
-                }while(result.ValueOrDie());
-            }
-        }
-
-        BENCHMARK(BM_Compressed_ReadOneColumnPerTimeVarchar)
-            ->Unit(::benchmark::kMillisecond);
-
-        static void BM_Compressed_ReadOneColumnPerTimeDecimal(::benchmark::State &state) {
-            ::arrow::MemoryPool *pool = ::arrow::default_memory_pool();
-
-            const char* file_path = std::getenv("ARROW_PARQUET_BENCHMARK_COMPRESSED_FILE");
-            std::string path_as_str(file_path);
-            
-            // Open the parquet file
-            std::shared_ptr<::arrow::io::RandomAccessFile> input;
-            PARQUET_ASSIGN_OR_THROW(input, ::arrow::io::ReadableFile::Open(path_as_str));
-
-            // Open Parquet file reader
-            std::unique_ptr<parquet::arrow::FileReader> arrow_reader;
-            EXIT_NOT_OK(parquet::arrow::OpenFile(input, pool, &arrow_reader));
-
-            while (state.KeepRunning()) {
-
-                std::shared_ptr<::arrow::RecordBatchReader> recordBatchReader;
-
-                // Read just the first row group inside the table
-                std::vector<int32_t> row_group_index;
-                row_group_index.push_back(0);
-
-                // Read just one column per time
-                std::vector<int32_t> columns_to_read;
-                columns_to_read.push_back(3);
-
-                EXIT_NOT_OK(arrow_reader->GetRecordBatchReader(row_group_index, columns_to_read, &recordBatchReader));
-
-                ::arrow::Result<std::shared_ptr<::arrow::RecordBatch>> result;
-                do{
-                    result = recordBatchReader->Next();
-                }while(result.ValueOrDie());
-            }
-        }
-
-        BENCHMARK(BM_Compressed_ReadOneColumnPerTimeDecimal)
-            ->Unit(::benchmark::kMillisecond);
-
-        static void BM_Compressed_ReadOneColumnPerTimeStruct(::benchmark::State &state) {
-            ::arrow::MemoryPool *pool = ::arrow::default_memory_pool();
-
-            const char* file_path = std::getenv("ARROW_PARQUET_BENCHMARK_COMPRESSED_FILE");
-            std::string path_as_str(file_path);
-            
-            // Open the parquet file
-            std::shared_ptr<::arrow::io::RandomAccessFile> input;
-            PARQUET_ASSIGN_OR_THROW(input, ::arrow::io::ReadableFile::Open(path_as_str));
-
-            // Open Parquet file reader
-            std::unique_ptr<parquet::arrow::FileReader> arrow_reader;
-            EXIT_NOT_OK(parquet::arrow::OpenFile(input, pool, &arrow_reader));
-
-            while (state.KeepRunning()) {
-
-                std::shared_ptr<::arrow::RecordBatchReader> recordBatchReader;
-
-                // Read just the first row group inside the table
-                std::vector<int32_t> row_group_index;
-                row_group_index.push_back(0);
-
-                // Read just one column per time
-                std::vector<int32_t> columns_to_read;
-                columns_to_read.push_back(4);
-
-                EXIT_NOT_OK(arrow_reader->GetRecordBatchReader(row_group_index, columns_to_read, &recordBatchReader));
-
-                ::arrow::Result<std::shared_ptr<::arrow::RecordBatch>> result;
-                do{
-                    result = recordBatchReader->Next();
-                }while(result.ValueOrDie());
-            }
-        }
-
-        BENCHMARK(BM_Compressed_ReadOneColumnPerTimeStruct)
-            ->Unit(::benchmark::kMillisecond);
-
-        static void BM_Compressed_ReadOneColumnPerTimeArrayStruct(::benchmark::State &state) {
-            ::arrow::MemoryPool *pool = ::arrow::default_memory_pool();
-
-            const char* file_path = std::getenv("ARROW_PARQUET_BENCHMARK_COMPRESSED_FILE");
-            std::string path_as_str(file_path);
-            
-            // Open the parquet file
-            std::shared_ptr<::arrow::io::RandomAccessFile> input;
-            PARQUET_ASSIGN_OR_THROW(input, ::arrow::io::ReadableFile::Open(path_as_str));
-
-            // Open Parquet file reader
-            std::unique_ptr<parquet::arrow::FileReader> arrow_reader;
-            EXIT_NOT_OK(parquet::arrow::OpenFile(input, pool, &arrow_reader));
-
-            while (state.KeepRunning()) {
-
-                std::shared_ptr<::arrow::RecordBatchReader> recordBatchReader;
-
-                // Read just the first row group inside the table
-                std::vector<int32_t> row_group_index;
-                row_group_index.push_back(0);
-
-                // Read just one column per time
-                std::vector<int32_t> columns_to_read;
-                columns_to_read.push_back(5);
-
-                EXIT_NOT_OK(arrow_reader->GetRecordBatchReader(row_group_index, columns_to_read, &recordBatchReader));
-
-                ::arrow::Result<std::shared_ptr<::arrow::RecordBatch>> result;
-                do{
-                    result = recordBatchReader->Next();
-                }while(result.ValueOrDie());
-            }
-        }
-
-        BENCHMARK(BM_Compressed_ReadOneColumnPerTimeArrayStruct)
-            ->Unit(::benchmark::kMillisecond);
-
+        BENCHMARK(BM_Uncompressed_ReadAllColumns)
+            ->Unit(::benchmark::kMillisecond)
+            ->MinTime(5);
     }  // namespace benchmark
 
 }  // namespace parquet
