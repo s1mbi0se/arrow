@@ -39,7 +39,7 @@ class Cache {
 
   Cache() : Cache(GetCapacity()) {}
 
-  ValueType GetModule(KeyType cache_key) {
+  ValueType GetModule(KeyType& cache_key) {
     arrow::util::optional<ValueCacheObject<ValueType>> result;
     mtx_.lock();
     result = cache_.get(cache_key);
@@ -47,7 +47,7 @@ class Cache {
     return result != arrow::util::nullopt ? (*result).module : nullptr;
   }
 
-  void PutModule(KeyType cache_key, ValueCacheObject<ValueType> valueCacheObject) {
+  void PutModule(KeyType& cache_key, ValueCacheObject<ValueType>& valueCacheObject) {
     mtx_.lock();
     cache_.insert(cache_key, valueCacheObject);
     mtx_.unlock();
