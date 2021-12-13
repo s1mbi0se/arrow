@@ -683,6 +683,165 @@ const char* gdv_fn_upper_utf8(int64_t context, const char* data, int32_t data_le
   return out;
 }
 
+gdv_uint64 unsignedLongDiv(gdv_int64 x, gdv_int32 m) {
+  if (x >= 0) {
+    return x / m;
+  }
+  return x / m + 2 * (LONG_MAX / m) + 2 / m + (x % m + 2 * (LONG_MAX % m) + 2 % m) / m;
+}
+
+gdv_int64 encode(gdv_int32 radix, gdv_int32 fromPos, const char* value,
+                 gdv_int32 valueLen) {
+  gdv_uint64 val = 0;
+  gdv_uint64 bound = unsignedLongDiv(-1 - radix, radix);
+
+  for (int i = fromPos; i < valueLen && value[i] >= 0; i++) {
+    if (val >= bound) {
+      if (unsignedLongDiv(-1 - value[i], radix) < val) {
+        return -1;
+      }
+    }
+    val = val * radix + value[i];
+  }
+  return val;
+}
+
+void decode(gdv_int64 val, gdv_int32 radix, char* value, gdv_int32 valueLen) {
+  for (int i = 0; i < valueLen; i++) {
+    value[i] = static_cast<char>(0);
+  }
+
+  for (int i = valueLen - 1; val != 0; i--) {
+    gdv_int64 q = unsignedLongDiv(val, radix);
+    value[i] = static_cast<char>((val - q * radix));
+    val = q;
+  }
+}
+
+char CharacterForDigit(gdv_int32 value, gdv_int32 radix) {  // From Decimal to Any Base
+
+  int digit = 0;
+  digit = value % radix;
+  if (digit < 10) {
+    return static_cast<char>(digit + '0');
+  } else {
+    return static_cast<char>(digit + 'A' - 10);
+  }
+}
+
+gdv_int64 CharacterDigit(char value, gdv_int32 radix) {  // From any base to Decimal
+  if ((radix <= 0) || (radix > 36)) {
+    return -1;
+  }
+
+  if (radix <= 10) {
+    if (value >= '0' && value < '0' + radix) {
+      return value - '0';
+    } else {
+      return -1;
+    }
+  } else if (value >= '0' && value <= '9')
+    return value - '0';
+  else if (value >= 'a' && value < 'a' + radix - 10)
+    return value - 'a' + 10;
+  else if (value >= 'A' && value < 'A' + radix - 10)
+    return value - 'A' + 10;
+
+  return -1;
+}
+
+void byte2char(gdv_int32 radix, gdv_int32 fromPos, char* value, gdv_int32 valueLen) {
+  for (int i = fromPos; i < valueLen; i++) {
+    value[i] = static_cast<char>(CharacterForDigit(value[i], radix));
+  }
+}
+
+void char2byte(gdv_int32 radix, gdv_int32 fromPos, char* value, gdv_int32 valueLen) {
+  for (int i = fromPos; i < valueLen; i++) {
+    value[i] = static_cast<char>(CharacterDigit(value[i], radix));
+  }
+}
+
+GANDIVA_EXPORT
+const char* conv_utf8_int32_int32(gdv_int64 context, const char* in, int32_t in_len,
+                                  gdv_int32 from_base, gdv_int32 to_base,
+                                  int32_t* out_len) {
+  if (in_len <= 0) {
+    out_len = 0;
+    return "";
+  }
+
+  gdv_int32 valueLen = 64;
+  char* value = reinterpret_cast<char*>(gdv_fn_context_arena_malloc(context, valueLen));
+  char* num = reinterpret_cast<char*>(gdv_fn_context_arena_malloc(context, in_len));
+
+  if (value == nullptr || num == nullptr) {
+    gdv_fn_context_set_error_msg(context, "Could not allocate memory for output string");
+    out_len = 0;
+    return "";
+  }
+
+  int fromBs = from_base;
+  int toBs = to_base;
+
+  if (fromBs < std::numeric_limits<char>::min() ||
+      fromBs > std::numeric_limits<char>::max() ||
+      abs(toBs) < std::numeric_limits<char>::min() ||
+      abs(toBs) > std::numeric_limits<char>::max()) {
+    return 0;
+  }
+
+  memcpy(num, in, in_len);
+
+  gdv_boolean negative = (num[0] == '-');
+  int first = 0;
+  if (negative) {
+    first = 1;
+  }
+
+  for (int i = 1; i <= in_len - first; i++) {
+    value[valueLen - i] = num[in_len - i];
+  }
+
+  char2byte(fromBs, valueLen - in_len + first, value, valueLen);
+
+  gdv_int64 val = encode(fromBs, valueLen - in_len + first, value, valueLen);
+
+  if (negative && toBs > 0) {
+    if (val < 0) {
+      val = -1;
+    } else {
+      val = -val;
+    }
+  }
+
+  if (toBs < 0 && val < 0) {
+    val = -val;
+    negative = true;
+  }
+
+  decode(val, abs(toBs), value, valueLen);
+
+  for (first = 0; first < valueLen - 1 && value[first] == 0; first++) {
+    ;
+  }
+
+  byte2char(abs(toBs), first, value, valueLen);
+
+  if (negative && toBs < 0) {
+    value[--first] = '-';
+  }
+
+  *out_len = valueLen - first;
+  /*
+  for (int i = 0; i < valueLen; i++){
+    value[i] = static_cast<int>(value[i]);
+  }
+  */
+
+  return &value[first];
+}
+
 // Convert an utf8 string to its corresponding lowercase string
 GANDIVA_EXPORT
 const char* gdv_fn_lower_utf8(int64_t context, const char* data, int32_t data_len,

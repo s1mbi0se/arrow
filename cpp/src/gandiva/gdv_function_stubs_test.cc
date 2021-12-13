@@ -949,4 +949,45 @@ TEST(TestGdvFnStubs, TestMaskLastN) {
   EXPECT_EQ(expected, std::string(result, out_len));
 }
 
+
+TEST(TestGdvFnStubs, TestConv) {
+  gandiva::ExecutionContext ctx;
+
+  int64_t ctx_ptr = reinterpret_cast<int64_t>(&ctx);
+  gdv_int32 out_len = 0;
+
+  const char* value = conv_utf8_int32_int32(ctx_ptr, "1000101101", 10, 2, 10, &out_len);
+  std::string out_value = std::string(value, out_len);
+  EXPECT_EQ(out_value, "557");
+
+  value = conv_utf8_int32_int32(ctx_ptr, "ffa", 3, 16, 10, &out_len);
+  out_value = std::string(value, out_len);
+  EXPECT_EQ(out_value, "4090");
+
+  value = conv_utf8_int32_int32(ctx_ptr, "4090", 4, 10, 16, &out_len);
+  out_value = std::string(value, out_len);
+  EXPECT_EQ(out_value, "FFA");
+
+  value = conv_utf8_int32_int32(ctx_ptr, "zzzb", 4, 36, 8, &out_len);
+  out_value = std::string(value, out_len);
+  EXPECT_EQ(out_value, "6320347");
+
+  value = conv_utf8_int32_int32(ctx_ptr, "a", 1, 16, 2, &out_len);
+  out_value = std::string(value, out_len);
+  EXPECT_EQ(out_value, "1010");
+
+  value = conv_utf8_int32_int32(ctx_ptr, "6E", 2, 18, 8, &out_len);
+  out_value = std::string(value, out_len);
+  EXPECT_EQ(out_value, "172");
+
+  value = conv_utf8_int32_int32(ctx_ptr, "-17", 3, 10, -18, &out_len);
+  out_value = std::string(value, out_len);
+  EXPECT_EQ(out_value, "-H");
+
+  value = conv_utf8_int32_int32(ctx_ptr, "40", 2, 10, 10, &out_len);
+  out_value = std::string(value, out_len);
+  EXPECT_EQ(out_value, "40");
+
+  ctx.Reset();
+}
 }  // namespace gandiva
