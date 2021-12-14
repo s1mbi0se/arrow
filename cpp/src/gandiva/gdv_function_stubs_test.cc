@@ -949,7 +949,6 @@ TEST(TestGdvFnStubs, TestMaskLastN) {
   EXPECT_EQ(expected, std::string(result, out_len));
 }
 
-
 TEST(TestGdvFnStubs, TestConv) {
   gandiva::ExecutionContext ctx;
 
