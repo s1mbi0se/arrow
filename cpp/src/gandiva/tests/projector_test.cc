@@ -2334,16 +2334,16 @@ TEST_F(TestProjector, TestConv) {
   EXPECT_TRUE(status.ok()) << status.message();
 
   // Create a row-batch with some sample data
-  int num_records = 4;
+  int num_records = 5;
   auto array0 =
-      MakeArrowArrayUtf8({"1000101101", "ffa", "4090", "zzzb"}, {true, true, true, true});
+      MakeArrowArrayUtf8({"1000101101", "ffa", "4090", "zzzb", "-H"}, {true, true, true, true, true});
 
-  auto array1 = MakeArrowArrayInt32({2, 16, 10, 36}, {true, true, true, true});
+  auto array1 = MakeArrowArrayInt32({2, 16, 10, 36, 36}, {true, true, true, true, true});
 
-  auto array2 = MakeArrowArrayInt32({10, 10, 16, 8}, {true, true, true, true});
+  auto array2 = MakeArrowArrayInt32({10, 10, 16, 8, -2}, {true, true, true, true, true});
   // expected output
   auto exp_conv =
-      MakeArrowArrayUtf8({"557", "4090", "FFA", "6320347"}, {true, true, true, true});
+      MakeArrowArrayUtf8({"557", "4090", "FFA", "6320347", "-10001"}, {true, true, true, true, true});
 
   // prepare input record batch
   auto in_batch =
