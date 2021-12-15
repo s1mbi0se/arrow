@@ -987,6 +987,19 @@ TEST(TestGdvFnStubs, TestConv) {
   out_value = std::string(value, out_len);
   EXPECT_EQ(out_value, "40");
 
+  //Test Int64 Conv Entry
+  value = conv_int64_int32_int32(ctx_ptr, 1000101101, 2, 10, &out_len);
+  out_value = std::string (value, out_len);
+  EXPECT_EQ(out_value, "557");
+
+  value = conv_int64_int32_int32(ctx_ptr, -17, 10, -16, &out_len);
+  out_value = std::string (value, out_len);
+  EXPECT_EQ(out_value, "-11");
+
+  value = conv_int64_int32_int32(ctx_ptr, 932, 35, 19, &out_len);
+  out_value = std::string (value, out_len);
+  EXPECT_EQ(out_value, "1BFH");
+
   ctx.Reset();
 }
 }  // namespace gandiva

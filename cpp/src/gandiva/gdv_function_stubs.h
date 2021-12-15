@@ -202,6 +202,10 @@ const char* gdv_mask_last_n_utf8_int32(int64_t context, const char* data,
                                        int32_t* out_len);
 
 GANDIVA_EXPORT
+const char* conv_int64_int32_int32(gdv_int64 context, gdv_int64 in, gdv_int32 from_base,
+                                   gdv_int32 to_base, int32_t* out_len);
+
+GANDIVA_EXPORT
 const char* conv_utf8_int32_int32(gdv_int64 context, const char* in, int32_t in_len,
                                   gdv_int32 from_base, gdv_int32 to_base,
                                   int32_t* out_len);

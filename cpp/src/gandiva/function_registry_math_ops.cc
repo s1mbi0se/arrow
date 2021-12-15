@@ -100,6 +100,9 @@ std::vector<NativeFunction> GetMathOpsFunctionRegistry() {
       NativeFunction("conv", {}, DataTypeVector{utf8(), int32(), int32()}, utf8(),
                      kResultNullIfNull, "conv_utf8_int32_int32",
                      NativeFunction::kNeedsContext | NativeFunction::kCanReturnErrors),
+      NativeFunction("conv", {}, DataTypeVector{int64(), int32(), int32()}, utf8(),
+                     kResultNullIfNull, "conv_int64_int32_int32",
+                     NativeFunction::kNeedsContext | NativeFunction::kCanReturnErrors),
 
       NativeFunction("truncate", {"trunc"}, DataTypeVector{int64(), int32()}, int64(),
                      kResultNullIfNull, "truncate_int64_int32"),

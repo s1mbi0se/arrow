@@ -683,6 +683,7 @@ const char* gdv_fn_upper_utf8(int64_t context, const char* data, int32_t data_le
   return out;
 }
 
+GDV_FORCE_INLINE
 gdv_uint64 unsignedLongDiv(gdv_int64 x, gdv_int32 m) {
   if (x >= 0) {
     return x / m;
@@ -690,6 +691,7 @@ gdv_uint64 unsignedLongDiv(gdv_int64 x, gdv_int32 m) {
   return x / m + 2 * (LONG_MAX / m) + 2 / m + (x % m + 2 * (LONG_MAX % m) + 2 % m) / m;
 }
 
+GDV_FORCE_INLINE
 gdv_int64 encode(gdv_int32 radix, gdv_int32 fromPos, const char* value,
                  gdv_int32 valueLen) {
   gdv_uint64 val = 0;
@@ -706,6 +708,7 @@ gdv_int64 encode(gdv_int32 radix, gdv_int32 fromPos, const char* value,
   return val;
 }
 
+GDV_FORCE_INLINE
 void decode(gdv_int64 val, gdv_int32 radix, char* value, gdv_int32 valueLen) {
   for (int i = 0; i < valueLen; i++) {
     value[i] = static_cast<char>(0);
@@ -718,6 +721,7 @@ void decode(gdv_int64 val, gdv_int32 radix, char* value, gdv_int32 valueLen) {
   }
 }
 
+GDV_FORCE_INLINE
 char CharacterForDigit(gdv_int32 value, gdv_int32 radix) {  // From Decimal to Any Base
 
   int digit = 0;
@@ -729,6 +733,7 @@ char CharacterForDigit(gdv_int32 value, gdv_int32 radix) {  // From Decimal to A
   }
 }
 
+GDV_FORCE_INLINE
 gdv_int64 CharacterDigit(char value, gdv_int32 radix) {  // From any base to Decimal
   if ((radix <= 0) || (radix > 36)) {
     return -1;
@@ -750,16 +755,29 @@ gdv_int64 CharacterDigit(char value, gdv_int32 radix) {  // From any base to Dec
   return -1;
 }
 
+GDV_FORCE_INLINE
 void byte2char(gdv_int32 radix, gdv_int32 fromPos, char* value, gdv_int32 valueLen) {
   for (int i = fromPos; i < valueLen; i++) {
     value[i] = static_cast<char>(CharacterForDigit(value[i], radix));
   }
 }
 
+GDV_FORCE_INLINE
 void char2byte(gdv_int32 radix, gdv_int32 fromPos, char* value, gdv_int32 valueLen) {
   for (int i = fromPos; i < valueLen; i++) {
     value[i] = static_cast<char>(CharacterDigit(value[i], radix));
   }
+}
+
+GANDIVA_EXPORT
+const char* conv_int64_int32_int32(gdv_int64 context, gdv_int64 in, gdv_int32 from_base,
+                                   gdv_int32 to_base, int32_t* out_len){
+
+  std::string to_utf8 = std::to_string(in);
+  char* in_utf8 = &to_utf8[0];
+  gdv_int32 in_utf8_len = to_utf8.length();
+
+  return conv_utf8_int32_int32(context, in_utf8, in_utf8_len, from_base, to_base, out_len);
 }
 
 GANDIVA_EXPORT
@@ -2470,6 +2488,20 @@ void ExportedStubFunctions::AddMappings(Engine* engine) const {
       reinterpret_cast<void*>(gdv_fn_cast_intervalyear_utf8_int32));
 
   // conv_function
+  // conv_function_int64
+  args = {
+      types->i64_type(),     // context
+      types->i64_type(),  // data
+      types->i32_type(),     // in_base
+      types->i32_type(),     // out_base
+      types->i32_ptr_type()  // out_length
+  };
+
+  engine->AddGlobalMappingForFunc("conv_int64_int32_int32",
+                                  types->i8_ptr_type() /*return_type*/, args,
+                                  reinterpret_cast<void*>(conv_int64_int32_int32));
+
+  // conv_function_utf8
   args = {
       types->i64_type(),     // context
       types->i8_ptr_type(),  // data
