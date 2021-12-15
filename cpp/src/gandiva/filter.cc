@@ -49,6 +49,9 @@ Status Filter::Make(SchemaPtr schema, ConditionPtr condition,
   std::shared_ptr<Cache<ExpressionCacheKey, std::shared_ptr<llvm::MemoryBuffer>>> cache =
       LLVMGenerator::GetCache();
 
+  std::shared_ptr<Cache<ExpressionCacheKey, std::shared_ptr<CompiledExpr>>> expr_cache =
+      LLVMGenerator::GetExpressionCache();
+
   Condition conditionToKey = *(condition.get());
 
   ExpressionCacheKey cache_key(schema, configuration, conditionToKey);
@@ -77,9 +80,9 @@ Status Filter::Make(SchemaPtr schema, ConditionPtr condition,
   // Set the object cache for LLVM
   llvm_gen->SetLLVMObjectCache(obj_cache);
 
-  ARROW_RETURN_NOT_OK(llvm_gen->Build(
-      {condition},
-      SelectionVector::Mode::MODE_NONE));  // to use when caching only the obj code
+  ARROW_RETURN_NOT_OK(
+      llvm_gen->Build({condition}, SelectionVector::Mode::MODE_NONE,
+                      expr_cache));  // to use when caching only the obj code
 
   // Instantiate the filter with the completely built llvm generator
   *filter = std::make_shared<Filter>(std::move(llvm_gen), schema, configuration);

@@ -59,37 +59,52 @@ LLVMGenerator::GetCache() {
 
   return shared_cache;
 }
-
-Status LLVMGenerator::Add(const ExpressionPtr expr, const FieldDescriptorPtr output) {
+std::shared_ptr<Cache<ExpressionCacheKey, std::shared_ptr<CompiledExpr>>>
+LLVMGenerator::GetExpressionCache() {
+  static std::shared_ptr<Cache<ExpressionCacheKey, std::shared_ptr<CompiledExpr>>>
+      expr_cache =
+          std::make_shared<Cache<ExpressionCacheKey, std::shared_ptr<CompiledExpr>>>();
+  return expr_cache;
+}
+Status LLVMGenerator::Add(
+    const ExpressionPtr expr, const FieldDescriptorPtr output,
+    std::shared_ptr<Cache<ExpressionCacheKey, std::shared_ptr<CompiledExpr>>> cache) {
   int idx = static_cast<int>(compiled_exprs_.size());
+  std::shared_ptr<ExpressionCacheKey> cache_key(new ExpressionCacheKey(*expr.get()));
+  auto begin_time = std::chrono::high_resolution_clock::now();
   // decompose the expression to separate out value and validities.
   ExprDecomposer decomposer(function_registry_, annotator_);
   ValueValidityPairPtr value_validity;
   ARROW_RETURN_NOT_OK(decomposer.Decompose(*expr->root(), &value_validity));
   // Generate the IR function for the decomposed expression.
-  std::unique_ptr<CompiledExpr> compiled_expr(new CompiledExpr(value_validity, output));
+  std::shared_ptr<CompiledExpr> compiled_expr(new CompiledExpr(value_validity, output));
   llvm::Function* ir_function = nullptr;
   ARROW_RETURN_NOT_OK(CodeGenExprValue(value_validity->value_expr(),
                                        annotator_.buffer_count(), output, idx,
                                        &ir_function, selection_vector_mode_));
   compiled_expr->SetIRFunction(selection_vector_mode_, ir_function);
-
-  compiled_exprs_.push_back(std::move(compiled_expr));
+  compiled_expr->SetCacheKey(cache_key);
+  auto end_time = std::chrono::high_resolution_clock::now();
+  auto elapsed_time =
+      std::chrono::duration_cast<std::chrono::milliseconds>(end_time - begin_time)
+          .count();
+  compiled_expr->AddToCost(elapsed_time);
+  compiled_exprs_.push_back(compiled_expr);
   return Status::OK();
 }
 
 void LLVMGenerator::SetLLVMObjectCache(GandivaObjectCache& object_cache) {
   engine_->SetLLVMObjectCache(object_cache);
 }
-
 /// \brief Build the code for the expression trees for default mode with a LLVM
 /// ObjectCache. Each element in the vector represents an expression tree
-Status LLVMGenerator::Build(const ExpressionVector& exprs, SelectionVector::Mode mode) {
+Status LLVMGenerator::Build(
+    const ExpressionVector& exprs, SelectionVector::Mode mode,
+    std::shared_ptr<Cache<ExpressionCacheKey, std::shared_ptr<CompiledExpr>>>& cache) {
   selection_vector_mode_ = mode;
-
   for (auto& expr : exprs) {
     auto output = annotator_.AddOutputFieldDescriptor(expr->result());
-    ARROW_RETURN_NOT_OK(Add(expr, output));
+    ARROW_RETURN_NOT_OK(Add(expr, output, cache));
   }
 
   // Compile and inject into the process' memory the generated function.
@@ -97,9 +112,27 @@ Status LLVMGenerator::Build(const ExpressionVector& exprs, SelectionVector::Mode
 
   // setup the jit functions for each expression.
   for (auto& compiled_expr : compiled_exprs_) {
-    auto ir_fn = compiled_expr->GetIRFunction(mode);
-    auto jit_fn = reinterpret_cast<EvalFunc>(engine_->CompiledFunction(ir_fn));
-    compiled_expr->SetJITFunction(selection_vector_mode_, jit_fn);
+    auto cached_expr = cache->GetObjectCode(*compiled_expr->GetCacheKey());
+    if (cached_expr != nullptr) {
+      ARROW_LOG(INFO) << "[INFO][CACHE-LOG]: An expression was found on cache.";
+      compiled_expr->SetJITFunction(selection_vector_mode_,
+                                    cached_expr->GetJITFunction(selection_vector_mode_));
+    } else {
+      ARROW_LOG(INFO) << "[INFO][CACHE-LOG]: An expression was not found on cache.";
+      auto begin_time = std::chrono::high_resolution_clock::now();
+      auto ir_fn = compiled_expr->GetIRFunction(mode);
+      auto jit_fn = reinterpret_cast<EvalFunc>(engine_->CompiledFunction(ir_fn));
+      compiled_expr->SetJITFunction(selection_vector_mode_, jit_fn);
+      auto end_time = std::chrono::high_resolution_clock::now();
+      auto elapsed_time =
+          std::chrono::duration_cast<std::chrono::milliseconds>(end_time - begin_time)
+              .count();
+      compiled_expr->AddToCost(elapsed_time);
+      compiled_expr->SetWasCached(true);
+      ValueCacheObject<std::shared_ptr<CompiledExpr>> value_cache(
+          compiled_expr, compiled_expr->GetCost(), compiled_expr->GetCost());
+      cache->PutObjectCode(*compiled_expr->GetCacheKey(), value_cache);
+    }
   }
 
   return Status::OK();
@@ -107,8 +140,10 @@ Status LLVMGenerator::Build(const ExpressionVector& exprs, SelectionVector::Mode
 
 /// \brief Build the code for the expression trees for default mode. Each
 /// element in the vector represents an expression tree
-Status LLVMGenerator::Build(const ExpressionVector& exprs) {
-  return Build(exprs, SelectionVector::Mode::MODE_NONE);
+Status LLVMGenerator::Build(
+    const ExpressionVector& exprs,
+    std::shared_ptr<Cache<ExpressionCacheKey, std::shared_ptr<CompiledExpr>>>& cache) {
+  return Build(exprs, SelectionVector::Mode::MODE_NONE, cache);
 }
 
 /// Execute the compiled module against the provided vectors.

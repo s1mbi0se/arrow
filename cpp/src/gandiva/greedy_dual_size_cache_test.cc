@@ -56,8 +56,8 @@ TEST_F(TestGreedyDualSizeCache, TestEvict) {
   // may affect the entity costs, which is not the purpose of this test
   ASSERT_EQ(cache_.get(GreedyDualSizeCacheKey(2)), arrow::util::nullopt);
   ASSERT_EQ(cache_.get(GreedyDualSizeCacheKey(3)), arrow::util::nullopt);
-  ASSERT_EQ(cache_.get(GreedyDualSizeCacheKey(1))->module, "5");
-  ASSERT_EQ(cache_.get(GreedyDualSizeCacheKey(4))->module, "4");
+  ASSERT_EQ(cache_.get(GreedyDualSizeCacheKey(1))->object, "5");
+  ASSERT_EQ(cache_.get(GreedyDualSizeCacheKey(4))->object, "4");
 }
 
 TEST_F(TestGreedyDualSizeCache, TestGreedyDualSizeBehavior) {
@@ -69,7 +69,7 @@ TEST_F(TestGreedyDualSizeCache, TestGreedyDualSizeBehavior) {
   // when accessing key 3, its actual cost will be increased by the inflation, so in the
   // next eviction, the key 1 will be evicted, since the key 1 actual cost (original(40))
   // is smaller than key 3 actual increased cost (original(30) + inflation(20))
-  ASSERT_EQ(cache_.get(GreedyDualSizeCacheKey(3))->module, "3");
+  ASSERT_EQ(cache_.get(GreedyDualSizeCacheKey(3))->object, "3");
 
   // try to insert key 2 and expect the eviction of key 1
   cache_.insert(GreedyDualSizeCacheKey(2), ValueCacheObject<std::string>("2", 20, 20));
@@ -77,10 +77,10 @@ TEST_F(TestGreedyDualSizeCache, TestGreedyDualSizeBehavior) {
 
   // when accessing key 2, its original cost should be increased by inflation, so when
   // inserting the key 1 again, now the key 3 should be evicted
-  ASSERT_EQ(cache_.get(GreedyDualSizeCacheKey(2))->module, "2");
+  ASSERT_EQ(cache_.get(GreedyDualSizeCacheKey(2))->object, "2");
   cache_.insert(GreedyDualSizeCacheKey(1), ValueCacheObject<std::string>("1", 20, 20));
 
-  ASSERT_EQ(cache_.get(GreedyDualSizeCacheKey(1))->module, "1");
+  ASSERT_EQ(cache_.get(GreedyDualSizeCacheKey(1))->object, "1");
   ASSERT_EQ(cache_.get(GreedyDualSizeCacheKey(3)), arrow::util::nullopt);
   ASSERT_EQ(20, cache_.size());
 }

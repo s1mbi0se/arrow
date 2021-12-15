@@ -54,16 +54,23 @@ class GANDIVA_EXPORT LLVMGenerator {
   static std::shared_ptr<Cache<ExpressionCacheKey, std::shared_ptr<llvm::MemoryBuffer>>>
   GetCache();
 
+  static std::shared_ptr<Cache<ExpressionCacheKey, std::shared_ptr<CompiledExpr>>>
+  GetExpressionCache();
+
   /// Set LLVM ObjectCache.
   void SetLLVMObjectCache(GandivaObjectCache& object_cache);
 
   /// \brief Build the code for the expression trees for default mode with a LLVM
   /// ObjectCache. Each element in the vector represents an expression tree
-  Status Build(const ExpressionVector& exprs, SelectionVector::Mode mode);
+  Status Build(
+      const ExpressionVector& exprs, SelectionVector::Mode mode,
+      std::shared_ptr<Cache<ExpressionCacheKey, std::shared_ptr<CompiledExpr>>>& cache);
 
   /// \brief Build the code for the expression trees for default mode. Each
   /// element in the vector represents an expression tree
-  Status Build(const ExpressionVector& exprs);
+  Status Build(
+      const ExpressionVector& exprs,
+      std::shared_ptr<Cache<ExpressionCacheKey, std::shared_ptr<CompiledExpr>>>& cache);
 
   /// \brief Execute the built expression against the provided arguments for
   /// default mode.
@@ -178,7 +185,9 @@ class GANDIVA_EXPORT LLVMGenerator {
 
   // Generate the code for one expression for default mode, with the output of
   // the expression going to 'output'.
-  Status Add(const ExpressionPtr expr, const FieldDescriptorPtr output);
+  Status Add(
+      const ExpressionPtr expr, const FieldDescriptorPtr output,
+      std::shared_ptr<Cache<ExpressionCacheKey, std::shared_ptr<CompiledExpr>>> cache);
 
   /// Generate code to load the vector at specified index in the 'arg_addrs' array.
   llvm::Value* LoadVectorAtIndex(llvm::Value* arg_addrs, int idx,
@@ -246,7 +255,7 @@ class GANDIVA_EXPORT LLVMGenerator {
   void AddTrace(const std::string& msg, llvm::Value* value = NULLPTR);
 
   std::unique_ptr<Engine> engine_;
-  std::vector<std::unique_ptr<CompiledExpr>> compiled_exprs_;
+  std::vector<std::shared_ptr<CompiledExpr>> compiled_exprs_;
   FunctionRegistry function_registry_;
   Annotator annotator_;
   SelectionVector::Mode selection_vector_mode_;

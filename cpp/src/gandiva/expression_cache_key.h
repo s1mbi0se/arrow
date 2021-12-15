@@ -57,9 +57,23 @@ class ExpressionCacheKey {
     size_t result = kSeedValue;
     expressions_as_strings_.push_back(expression.ToString());
     UpdateUniqifier(expression.ToString());
-
+    arrow::internal::hash_combine(result, expression.ToString());
     arrow::internal::hash_combine(result, configuration->Hash());
     arrow::internal::hash_combine(result, schema_->ToString());
+    arrow::internal::hash_combine(result, uniqifier_);
+    hash_code_ = result;
+  }
+
+  ExpressionCacheKey(Expression& expr) : uniqifier_(0) {
+    static const int kSeedValue = 4;
+    configuration_ = nullptr;
+    schema_ = nullptr;
+    expressions_as_strings_.push_back(expr.ToString());
+    mode_ = SelectionVector::Mode::MODE_MAX;
+    size_t result = kSeedValue;
+    UpdateUniqifier(expr.ToString());
+    arrow::internal::hash_combine(result, static_cast<size_t>(mode_));
+    arrow::internal::hash_combine(result, expr.ToString());
     arrow::internal::hash_combine(result, uniqifier_);
     hash_code_ = result;
   }

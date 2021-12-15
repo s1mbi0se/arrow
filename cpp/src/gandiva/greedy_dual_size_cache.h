@@ -29,12 +29,12 @@
 // modified cache to support evict policy using the GreedyDual-Size algorithm.
 namespace gandiva {
 // Defines a base value object supported on the cache that may contain properties
-template <typename ValueType>
+template <typename ObjectType>
 class ValueCacheObject {
  public:
-  ValueCacheObject(ValueType module, uint64_t cost, size_t size)
-      : module(module), cost(cost), size(size) {}
-  ValueType module;
+  ValueCacheObject(ObjectType object, uint64_t cost, size_t size)
+      : object(std::move(object)), cost(cost), size(size) {}
+  ObjectType object;
   uint64_t cost;
   size_t size;
   bool operator<(const ValueCacheObject& other) const { return cost < other.cost; }

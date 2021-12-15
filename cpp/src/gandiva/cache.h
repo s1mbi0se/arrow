@@ -44,7 +44,7 @@ class Cache {
     mtx_.lock();
     result = cache_.get(cache_key);
     mtx_.unlock();
-    return result != arrow::util::nullopt ? (*result).module : nullptr;
+    return result != arrow::util::nullopt ? (*result).object : nullptr;
   }
 
   void PutObjectCode(KeyType& cache_key, ValueCacheObject<ValueType>& object_code) {

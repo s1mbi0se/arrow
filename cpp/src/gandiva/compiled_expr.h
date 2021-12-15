@@ -18,6 +18,7 @@
 #pragma once
 
 #include <vector>
+#include "gandiva/expression_cache_key.h"
 #include "gandiva/llvm_includes.h"
 #include "gandiva/selection_vector.h"
 #include "gandiva/value_validity_pair.h"
@@ -54,6 +55,18 @@ class CompiledExpr {
     return jit_functions_[static_cast<int>(mode)];
   }
 
+  void SetWasCached(bool flag) { was_cached_ = flag; }
+
+  bool GetWasCached() const { return was_cached_; }
+
+  void AddToCost(int64_t cost) { cost_ = cost_ + cost; }
+
+  int64_t GetCost() const { return cost_; }
+
+  void SetCacheKey(std::shared_ptr<ExpressionCacheKey> key) { key_ = std::move(key); }
+
+  std::shared_ptr<ExpressionCacheKey> GetCacheKey() const { return key_; }
+
  private:
   // value & validities for the expression tree (root)
   ValueValidityPairPtr value_validity_;
@@ -66,6 +79,13 @@ class CompiledExpr {
 
   // JIT functions in the generated code (set after the module is optimised and finalized)
   std::array<EvalFunc, SelectionVector::kNumModes> jit_functions_;
+
+  // Flag which indicates if it is cached or not
+  bool was_cached_ = false;
+
+  int64_t cost_ = 0;
+
+  std::shared_ptr<ExpressionCacheKey> key_;
 };
 
 }  // namespace gandiva
