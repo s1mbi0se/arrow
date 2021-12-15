@@ -771,13 +771,13 @@ void char2byte(gdv_int32 radix, gdv_int32 fromPos, char* value, gdv_int32 valueL
 
 GANDIVA_EXPORT
 const char* conv_int64_int32_int32(gdv_int64 context, gdv_int64 in, gdv_int32 from_base,
-                                   gdv_int32 to_base, int32_t* out_len){
-
+                                   gdv_int32 to_base, int32_t* out_len) {
   std::string to_utf8 = std::to_string(in);
   char* in_utf8 = &to_utf8[0];
   gdv_int32 in_utf8_len = to_utf8.length();
 
-  return conv_utf8_int32_int32(context, in_utf8, in_utf8_len, from_base, to_base, out_len);
+  return conv_utf8_int32_int32(context, in_utf8, in_utf8_len, from_base, to_base,
+                               out_len);
 }
 
 GANDIVA_EXPORT
@@ -2491,7 +2491,7 @@ void ExportedStubFunctions::AddMappings(Engine* engine) const {
   // conv_function_int64
   args = {
       types->i64_type(),     // context
-      types->i64_type(),  // data
+      types->i64_type(),     // data
       types->i32_type(),     // in_base
       types->i32_type(),     // out_base
       types->i32_ptr_type()  // out_length
