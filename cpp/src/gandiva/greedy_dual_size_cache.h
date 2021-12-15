@@ -31,8 +31,9 @@ namespace gandiva {
 template <typename ValueType>
 class ValueCacheObject {
  public:
-  explicit ValueCacheObject(ValueType module, uint64_t cost) : module(std::move(module)), cost(cost) {}
-  ~ValueCacheObject()= default;
+  explicit ValueCacheObject(ValueType module, uint64_t cost)
+      : module(std::move(module)), cost(cost) {}
+  ~ValueCacheObject() = default;
   ValueType module;
   uint64_t cost;
   bool operator<(const ValueCacheObject& other) const { return cost < other.cost; }
