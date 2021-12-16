@@ -684,7 +684,7 @@ const char* gdv_fn_upper_utf8(int64_t context, const char* data, int32_t data_le
 }
 
 GDV_FORCE_INLINE
-gdv_uint64 unsignedLongDiv(gdv_int64 x, gdv_int32 m) {
+uint64_t unsigned_long_div(gdv_int64 x, gdv_int32 m) {
   if (x >= 0) {
     return x / m;
   }
@@ -694,12 +694,12 @@ gdv_uint64 unsignedLongDiv(gdv_int64 x, gdv_int32 m) {
 GDV_FORCE_INLINE
 gdv_int64 encode(gdv_int32 radix, gdv_int32 fromPos, const char* value,
                  gdv_int32 valueLen) {
-  gdv_uint64 val = 0;
-  gdv_uint64 bound = unsignedLongDiv(-1 - radix, radix);
+  uint64_t val = 0;
+  uint64_t bound = unsigned_long_div(-1 - radix, radix);
 
   for (int i = fromPos; i < valueLen && value[i] >= 0; i++) {
     if (val >= bound) {
-      if (unsignedLongDiv(-1 - value[i], radix) < val) {
+      if (unsigned_long_div(-1 - value[i], radix) < val) {
         return -1;
       }
     }
@@ -715,15 +715,15 @@ void decode(gdv_int64 val, gdv_int32 radix, char* value, gdv_int32 valueLen) {
   }
 
   for (int i = valueLen - 1; val != 0; i--) {
-    gdv_int64 q = unsignedLongDiv(val, radix);
+    gdv_int64 q = unsigned_long_div(val, radix);
     value[i] = static_cast<char>((val - q * radix));
     val = q;
   }
 }
 
 GDV_FORCE_INLINE
-char CharacterForDigit(gdv_int32 value, gdv_int32 radix) {  // From Decimal to Any Base
-
+char character_for_digit(gdv_int32 value, gdv_int32 radix) {  // From Decimal to Any Base
+  //This function is similar to Character.forDigit in Java
   int digit = 0;
   digit = value % radix;
   if (digit < 10) {
@@ -734,7 +734,8 @@ char CharacterForDigit(gdv_int32 value, gdv_int32 radix) {  // From Decimal to A
 }
 
 GDV_FORCE_INLINE
-gdv_int64 CharacterDigit(char value, gdv_int32 radix) {  // From any base to Decimal
+gdv_int64 character_digit(char value, gdv_int32 radix) {  // From any base to Decimal
+  //This function is similar to Character.digit in Java
   if ((radix <= 0) || (radix > 36)) {
     return -1;
   }
@@ -758,19 +759,30 @@ gdv_int64 CharacterDigit(char value, gdv_int32 radix) {  // From any base to Dec
 GDV_FORCE_INLINE
 void byte2char(gdv_int32 radix, gdv_int32 fromPos, char* value, gdv_int32 valueLen) {
   for (int i = fromPos; i < valueLen; i++) {
-    value[i] = static_cast<char>(CharacterForDigit(value[i], radix));
+    value[i] = static_cast<char>(character_for_digit(value[i], radix));
   }
 }
 
 GDV_FORCE_INLINE
 void char2byte(gdv_int32 radix, gdv_int32 fromPos, char* value, gdv_int32 valueLen) {
   for (int i = fromPos; i < valueLen; i++) {
-    value[i] = static_cast<char>(CharacterDigit(value[i], radix));
+    value[i] = static_cast<char>(character_digit(value[i], radix));
   }
 }
 
 GANDIVA_EXPORT
 const char* conv_int64_int32_int32(gdv_int64 context, gdv_int64 in, gdv_int32 from_base,
+                                   gdv_int32 to_base, int32_t* out_len) {
+  std::string to_utf8 = std::to_string(in);
+  char* in_utf8 = &to_utf8[0];
+  gdv_int32 in_utf8_len = to_utf8.length();
+
+  return conv_utf8_int32_int32(context, in_utf8, in_utf8_len, from_base, to_base,
+                               out_len);
+}
+
+GANDIVA_EXPORT
+const char* conv_int32_int32_int32(gdv_int64 context, gdv_int32 in, gdv_int32 from_base,
                                    gdv_int32 to_base, int32_t* out_len) {
   std::string to_utf8 = std::to_string(in);
   char* in_utf8 = &to_utf8[0];
@@ -802,27 +814,37 @@ const char* conv_utf8_int32_int32(gdv_int64 context, const char* in, int32_t in_
   int fromBs = from_base;
   int toBs = to_base;
 
+  // Checking if the variable is in range limit
   if (fromBs < std::numeric_limits<char>::min() ||
       fromBs > std::numeric_limits<char>::max() ||
       abs(toBs) < std::numeric_limits<char>::min() ||
       abs(toBs) > std::numeric_limits<char>::max()) {
-    return 0;
+    gdv_fn_context_set_error_msg(context,
+                                 "The numerical limit of this variable is out range");
+    *out_len = 0;
+    return "";
   }
 
+  // Copying entry to new variable, for apply manipulations
   memcpy(num, in, in_len);
 
+  // Validating if the entry is negative
   gdv_boolean negative = (num[0] == '-');
   int first = 0;
   if (negative) {
     first = 1;
   }
 
+  // Making a copy the Num array in ending of Value array
   for (int i = 1; i <= in_len - first; i++) {
     value[valueLen - i] = num[in_len - i];
   }
 
+  // changing char to byte, this function calls one function similar to Character.digit in
+  // Java
   char2byte(fromBs, valueLen - in_len + first, value, valueLen);
 
+  // return a long value with the entry value converted to base 10
   gdv_int64 val = encode(fromBs, valueLen - in_len + first, value, valueLen);
 
   if (negative && toBs > 0) {
@@ -840,23 +862,21 @@ const char* conv_utf8_int32_int32(gdv_int64 context, const char* in, int32_t in_
 
   decode(val, abs(toBs), value, valueLen);
 
+  // Find the first non-zero digit or the last digits if all are zero.
   for (first = 0; first < valueLen - 1 && value[first] == 0; first++) {
     ;
   }
 
+  // changing byte to char, this function calls one function similar to Character.forDigit
+  // in Java
   byte2char(abs(toBs), first, value, valueLen);
 
+  // Add signal if the entry value is negative
   if (negative && toBs < 0) {
     value[--first] = '-';
   }
 
   *out_len = valueLen - first;
-  /*
-  for (int i = 0; i < valueLen; i++){
-    value[i] = static_cast<int>(value[i]);
-  }
-  */
-
   return &value[first];
 }
 
@@ -2500,6 +2520,19 @@ void ExportedStubFunctions::AddMappings(Engine* engine) const {
   engine->AddGlobalMappingForFunc("conv_int64_int32_int32",
                                   types->i8_ptr_type() /*return_type*/, args,
                                   reinterpret_cast<void*>(conv_int64_int32_int32));
+
+  // conv_function_int32
+  args = {
+      types->i64_type(),     // context
+      types->i32_type(),     // data
+      types->i32_type(),     // in_base
+      types->i32_type(),     // out_base
+      types->i32_ptr_type()  // out_length
+  };
+
+  engine->AddGlobalMappingForFunc("conv_int32_int32_int32",
+                                  types->i8_ptr_type() /*return_type*/, args,
+                                  reinterpret_cast<void*>(conv_int32_int32_int32));
 
   // conv_function_utf8
   args = {

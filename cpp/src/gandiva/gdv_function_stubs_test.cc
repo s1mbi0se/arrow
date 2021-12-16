@@ -987,6 +987,14 @@ TEST(TestGdvFnStubs, TestConv) {
   out_value = std::string(value, out_len);
   EXPECT_EQ(out_value, "40");
 
+  // Test define limit out of range
+  int out_ranged_toBs = 10;
+  out_ranged_toBs = std::numeric_limits<int>::min();
+  value = conv_utf8_int32_int32(ctx_ptr, "40", 2, 10, out_ranged_toBs, &out_len);
+  EXPECT_THAT(ctx.get_error(),
+              ::testing::HasSubstr("The numerical limit of this variable is out range"));
+  ctx.Reset();
+
   // Test Int64 Conv Entry
   value = conv_int64_int32_int32(ctx_ptr, 1000101101, 2, 10, &out_len);
   out_value = std::string(value, out_len);
