@@ -723,7 +723,7 @@ void decode(gdv_int64 val, gdv_int32 radix, char* value, gdv_int32 valueLen) {
 
 GDV_FORCE_INLINE
 char character_for_digit(gdv_int32 value, gdv_int32 radix) {  // From Decimal to Any Base
-  //This function is similar to Character.forDigit in Java
+  // This function is similar to Character.forDigit in Java
   int digit = 0;
   digit = value % radix;
   if (digit < 10) {
@@ -735,7 +735,7 @@ char character_for_digit(gdv_int32 value, gdv_int32 radix) {  // From Decimal to
 
 GDV_FORCE_INLINE
 gdv_int64 character_digit(char value, gdv_int32 radix) {  // From any base to Decimal
-  //This function is similar to Character.digit in Java
+  // This function is similar to Character.digit in Java
   if ((radix <= 0) || (radix > 36)) {
     return -1;
   }
@@ -814,11 +814,11 @@ const char* conv_utf8_int32_int32(gdv_int64 context, const char* in, int32_t in_
   int fromBs = from_base;
   int toBs = to_base;
 
-  // Checking if the variable is in range limit
   if (fromBs < std::numeric_limits<char>::min() ||
       fromBs > std::numeric_limits<char>::max() ||
       abs(toBs) < std::numeric_limits<char>::min() ||
       abs(toBs) > std::numeric_limits<char>::max()) {
+    // Checking if the variable is in range limit
     gdv_fn_context_set_error_msg(context,
                                  "The numerical limit of this variable is out range");
     *out_len = 0;
@@ -835,16 +835,15 @@ const char* conv_utf8_int32_int32(gdv_int64 context, const char* in, int32_t in_
     first = 1;
   }
 
-  // Making a copy the Num array in ending of Value array
   for (int i = 1; i <= in_len - first; i++) {
+    // Making a copy the Num array in ending of Value array
     value[valueLen - i] = num[in_len - i];
   }
 
-  // changing char to byte, this function calls one function similar to Character.digit in
-  // Java
+  // Char to byte, this function calls one function similar to Character.digit in Java
   char2byte(fromBs, valueLen - in_len + first, value, valueLen);
 
-  // return a long value with the entry value converted to base 10
+  // Return a long value with the entry value converted to base 10
   gdv_int64 val = encode(fromBs, valueLen - in_len + first, value, valueLen);
 
   if (negative && toBs > 0) {
@@ -862,17 +861,16 @@ const char* conv_utf8_int32_int32(gdv_int64 context, const char* in, int32_t in_
 
   decode(val, abs(toBs), value, valueLen);
 
-  // Find the first non-zero digit or the last digits if all are zero.
   for (first = 0; first < valueLen - 1 && value[first] == 0; first++) {
+    // Find the first non-zero digit or the last digits if all are zero.
     ;
   }
 
-  // changing byte to char, this function calls one function similar to Character.forDigit
-  // in Java
+  // Byte to char, this function calls one function similar to Character.forDigit in Java
   byte2char(abs(toBs), first, value, valueLen);
 
-  // Add signal if the entry value is negative
   if (negative && toBs < 0) {
+    // Add signal if the entry value is negative
     value[--first] = '-';
   }
 
