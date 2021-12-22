@@ -746,12 +746,13 @@ gdv_int64 character_digit(char value, gdv_int32 radix) {  // From any base to De
     } else {
       return -1;
     }
-  } else if (value >= '0' && value <= '9')
+  } else if (value >= '0' && value <= '9') {
     return value - '0';
-  else if (value >= 'a' && value < 'a' + radix - 10)
+  } else if (value >= 'a' && value < 'a' + radix - 10) {
     return value - 'a' + 10;
-  else if (value >= 'A' && value < 'A' + radix - 10)
+  } else if (value >= 'A' && value < 'A' + radix - 10) {
     return value - 'A' + 10;
+  }
 
   return -1;
 }
@@ -863,7 +864,7 @@ const char* conv_utf8_int32_int32(gdv_int64 context, const char* in, int32_t in_
 
   for (first = 0; first < valueLen - 1 && value[first] == 0; first++) {
     // Find the first non-zero digit or the last digits if all are zero.
-    ;
+    {}
   }
 
   // Byte to char, this function calls one function similar to Character.forDigit in Java
