@@ -987,12 +987,45 @@ TEST(TestGdvFnStubs, TestConv) {
   out_value = std::string(value, out_len);
   EXPECT_EQ(out_value, "40");
 
+  value = conv_utf8_int32_int32(ctx_ptr, "000000000001", 12, 2, 10, &out_len);
+  out_value = std::string(value, out_len);
+  EXPECT_EQ(out_value, "1");
+
+  value = conv_utf8_int32_int32(ctx_ptr, "-000000000001", 13, 2, -10, &out_len);
+  out_value = std::string(value, out_len);
+  EXPECT_EQ(out_value, "-1");
+
   // Test define limit out of range
-  int out_ranged_toBs = 10;
+  int out_ranged_toBs;
   out_ranged_toBs = std::numeric_limits<int>::min();
   value = conv_utf8_int32_int32(ctx_ptr, "40", 2, 10, out_ranged_toBs, &out_len);
   EXPECT_THAT(ctx.get_error(),
               ::testing::HasSubstr("The numerical limit of this variable is out range"));
+  ctx.Reset();
+
+  out_ranged_toBs = 37;
+  value = conv_utf8_int32_int32(ctx_ptr, "40", 2, 10, out_ranged_toBs, &out_len);
+  EXPECT_THAT(ctx.get_error(),
+              ::testing::HasSubstr("The numerical limit of this variable is out range"));
+  ctx.Reset();
+
+  // Test Invalid Entry
+  value = conv_utf8_int32_int32(ctx_ptr, "123-4565", 8, 20, 10, &out_len);
+  EXPECT_THAT(
+      ctx.get_error(),
+      ::testing::HasSubstr("This entry is invalid, have some problems to convert"));
+  ctx.Reset();
+
+  value = conv_utf8_int32_int32(ctx_ptr, "aaaa@#aa", 8, 36, 10, &out_len);
+  EXPECT_THAT(
+      ctx.get_error(),
+      ::testing::HasSubstr("This entry is invalid, have some problems to convert"));
+  ctx.Reset();
+
+  value = conv_utf8_int32_int32(ctx_ptr, "ffe sdkl", 8, 36, 10, &out_len);
+  EXPECT_THAT(
+      ctx.get_error(),
+      ::testing::HasSubstr("This entry is invalid, have some problems to convert"));
   ctx.Reset();
 
   // Test Int64 Conv Entry

@@ -721,8 +721,9 @@ void decode(gdv_int64 val, gdv_int32 radix, char* value, gdv_int32 valueLen) {
   }
 }
 
+// From Decimal to Any Base
 GDV_FORCE_INLINE
-char character_for_digit(gdv_int32 value, gdv_int32 radix) {  // From Decimal to Any Base
+char character_for_digit(gdv_int32 value, gdv_int32 radix) {
   // This function is similar to Character.forDigit in Java
   int digit = 0;
   digit = value % radix;
@@ -733,8 +734,9 @@ char character_for_digit(gdv_int32 value, gdv_int32 radix) {  // From Decimal to
   }
 }
 
+// From any base to Decimal
 GDV_FORCE_INLINE
-gdv_int64 character_digit(char value, gdv_int32 radix) {  // From any base to Decimal
+gdv_int64 character_digit(char value, gdv_int32 radix) {
   // This function is similar to Character.digit in Java
   if ((radix <= 0) || (radix > 36)) {
     return -1;
@@ -765,10 +767,14 @@ void byte2char(gdv_int32 radix, gdv_int32 fromPos, char* value, gdv_int32 valueL
 }
 
 GDV_FORCE_INLINE
-void char2byte(gdv_int32 radix, gdv_int32 fromPos, char* value, gdv_int32 valueLen) {
+int32_t char2byte(gdv_int32 radix, gdv_int32 fromPos, char* value, gdv_int32 valueLen) {
   for (int i = fromPos; i < valueLen; i++) {
     value[i] = static_cast<char>(character_digit(value[i], radix));
+    if (value[i] == -1) {
+      return -1;
+    }
   }
+  return 1;
 }
 
 GANDIVA_EXPORT
@@ -815,10 +821,8 @@ const char* conv_utf8_int32_int32(gdv_int64 context, const char* in, int32_t in_
   int fromBs = from_base;
   int toBs = to_base;
 
-  if (fromBs < std::numeric_limits<char>::min() ||
-      fromBs > std::numeric_limits<char>::max() ||
-      abs(toBs) < std::numeric_limits<char>::min() ||
-      abs(toBs) > std::numeric_limits<char>::max()) {
+  if (fromBs < -36 || fromBs > 36 || fromBs == 0 || fromBs == 1 || abs(toBs) < -36 ||
+      abs(toBs) > 36 || abs(toBs) == 0 || abs(toBs) == 1) {
     // Checking if the variable is in range limit
     gdv_fn_context_set_error_msg(context,
                                  "The numerical limit of this variable is out range");
@@ -842,7 +846,16 @@ const char* conv_utf8_int32_int32(gdv_int64 context, const char* in, int32_t in_
   }
 
   // Char to byte, this function calls one function similar to Character.digit in Java
-  char2byte(fromBs, valueLen - in_len + first, value, valueLen);
+  int32_t valid_entry = char2byte(fromBs, valueLen - in_len + first, value, valueLen);
+
+  // If valid_entry returns -1, had any problem with the entry, it is out of base or have
+  // invalid characters
+  if (valid_entry == -1) {
+    gdv_fn_context_set_error_msg(context,
+                                 "This entry is invalid, have some problems to convert");
+    *out_len = 0;
+    return "";
+  }
 
   // Return a long value with the entry value converted to base 10
   gdv_int64 val = encode(fromBs, valueLen - in_len + first, value, valueLen);
