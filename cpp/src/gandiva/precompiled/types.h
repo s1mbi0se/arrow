@@ -174,6 +174,10 @@ gdv_int64 date_trunc_Decade_date64(gdv_date64);
 gdv_int64 date_trunc_Century_date64(gdv_date64);
 gdv_int64 date_trunc_Millennium_date64(gdv_date64);
 
+const char* date_trunc_timestamp_utf8(int64_t context, gdv_int64 date,
+                                      const char* pattern_name, gdv_int32 pattern_length,
+                                      gdv_int32* out_len);
+
 gdv_int64 date_trunc_Week_timestamp(gdv_timestamp);
 double months_between_timestamp_timestamp(gdv_uint64, gdv_uint64);
 
