@@ -174,7 +174,11 @@ gdv_int64 date_trunc_Decade_date64(gdv_date64);
 gdv_int64 date_trunc_Century_date64(gdv_date64);
 gdv_int64 date_trunc_Millennium_date64(gdv_date64);
 
-const char* date_trunc_timestamp_utf8(int64_t context, int64_t date,
+const char* date_trunc_date64_utf8(int64_t context, gdv_date64 date,
+                                   const char* pattern_name, int32_t pattern_length,
+                                   int32_t* out_len);
+
+const char* date_trunc_timestamp_utf8(int64_t context, gdv_timestamp date,
                                       const char* pattern_name, int32_t pattern_length,
                                       int32_t* out_len);
 
