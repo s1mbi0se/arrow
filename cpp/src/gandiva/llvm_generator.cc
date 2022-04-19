@@ -300,6 +300,7 @@ Status LLVMGenerator::CodeGenExprValue(DexPtr value_expr, int buffer_count,
   *fn = llvm::Function::Create(prototype, llvm::GlobalValue::ExternalLinkage, func_name,
                                module());
   ARROW_RETURN_IF((*fn == nullptr), Status::CodeGenError("Error creating function."));
+  (*fn)->addAttribute(llvm::AttributeList::FunctionIndex, llvm::Attribute::AlwaysInline);
 
   // Name the arguments
   llvm::Function::arg_iterator args = (*fn)->arg_begin();
