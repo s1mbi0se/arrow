@@ -19,14 +19,26 @@
 
 set -ex
 
-arrow_dir=${1}
-build_dir=${2}
+arch=${1}
+arrow_dir=${2}
+build_dir=${3}
 # The directory where the final binaries will be stored when scripts finish
-dist_dir=${3}
+dist_dir=${4}
 
 echo "=== Clear output directories and leftovers ==="
 # Clear output directories and leftovers
 rm -rf ${build_dir}
+
+if [ $arch = "arm64" ]; then
+  export CMAKE_OSX_ARCHITECTURES="arm64"
+elif [ $arch = "x86_64" ]; then
+  export CMAKE_OSX_ARCHITECTURES="x86_64"
+elif [ $arch = "universal2" ]; then
+  export CMAKE_OSX_ARCHITECTURES="x86_64;arm64"
+else
+  echo "Unexpected architecture: $arch"
+  exit 1
+fi
 
 echo "=== Building Arrow C++ libraries ==="
 : ${ARROW_BUILD_TESTS:=OFF}
@@ -41,6 +53,7 @@ echo "=== Building Arrow C++ libraries ==="
 : ${ARROW_PYTHON:=OFF}
 : ${CMAKE_BUILD_TYPE:=Release}
 : ${CMAKE_UNITY_BUILD:=ON}
+: ${CMAKE_GENERATOR:=Ninja}
 
 export ARROW_TEST_DATA="${arrow_dir}/testing/data"
 export PARQUET_TEST_DATA="${arrow_dir}/cpp/submodules/parquet-testing/data"
@@ -50,7 +63,7 @@ mkdir -p "${build_dir}"
 pushd "${build_dir}"
 
 cmake \
-  -GNinja \
+  -G${CMAKE_GENERATOR} \
   -DARROW_BOOST_USE_SHARED=OFF \
   -DARROW_BROTLI_USE_SHARED=OFF \
   -DARROW_BUILD_TESTS=${ARROW_BUILD_TESTS} \
@@ -83,6 +96,8 @@ cmake \
   -DPARQUET_BUILD_EXAMPLES=OFF \
   -DPARQUET_BUILD_EXECUTABLES=OFF \
   -DPARQUET_REQUIRE_ENCRYPTION=OFF \
+  -DCMAKE_OSX_ARCHITECTURES=${CMAKE_OSX_ARCHITECTURES} \
+  -DCMAKE_APPLE_SILICON_PROCESSOR=arm64 \
   -Dre2_SOURCE=BUNDLED \
   ${arrow_dir}/cpp
 cmake --build . --target install
@@ -99,9 +114,9 @@ cp -L ${build_dir}/lib/libgandiva_jni.dylib ${dist_dir}
 cp -L ${build_dir}/lib/libarrow_dataset_jni.dylib ${dist_dir}
 cp -L ${build_dir}/lib/libarrow_orc_jni.dylib ${dist_dir}
 
-echo "=== Checking shared dependencies for libraries ==="
-
 pushd ${dist_dir}
+
+echo "=== Checking shared dependencies for libraries ==="
 archery linking check-dependencies \
   --allow libarrow_dataset_jni \
   --allow libarrow_orc_jni \
@@ -113,4 +128,10 @@ archery linking check-dependencies \
   libgandiva_jni.dylib \
   libarrow_dataset_jni.dylib \
   libarrow_orc_jni.dylib
+
+echo "=== Renames libraries according to the target arch ==="
+mv libgandiva_jni.dylib libgandiva_jni_${arch}.dylib
+mv libarrow_dataset_jni.dylib libarrow_dataset_jni_${arch}.dylib
+mv libarrow_orc_jni.dylib libarrow_orc_jni_${arch}.dylib
+
 popd
