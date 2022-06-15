@@ -1001,7 +1001,8 @@ gdv_int64 castBIGINT_daytimeinterval(gdv_day_time_interval in) {
     return static_cast<gdv_timestamp>(seconds * MILLIS_IN_SEC); \
   }
 
-INTEGER_NUMERIC_TYPES(TO_TIMESTAMP_INTEGER)
+TO_TIMESTAMP_INTEGER(int32)
+TO_TIMESTAMP_INTEGER(int64)
 REAL_NUMERIC_TYPES(TO_TIMESTAMP_REAL)
 
 #undef TO_TIMESTAMP_INTEGER
