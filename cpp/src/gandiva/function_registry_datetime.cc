@@ -173,7 +173,10 @@ std::vector<NativeFunction> GetDateTimeFunctionRegistry() {
 
       DATE_TYPES(LAST_DAY_SAFE_NULL_IF_NULL, last_day, {}),
       BASE_NUMERIC_TYPES(TO_TIME_SAFE_NULL_IF_NULL, to_time, {}),
-      BASE_NUMERIC_TYPES(TO_TIMESTAMP_SAFE_NULL_IF_NULL, to_timestamp, {})};
+      TO_TIMESTAMP_SAFE_NULL_IF_NULL(to_timestamp, {}, int32),
+      TO_TIMESTAMP_SAFE_NULL_IF_NULL(to_timestamp, {}, int64),
+      TO_TIMESTAMP_SAFE_NULL_IF_NULL(to_timestamp, {}, float32),
+      TO_TIMESTAMP_SAFE_NULL_IF_NULL(to_timestamp, {}, float64)};
 
   return date_time_fn_registry_;
 }
